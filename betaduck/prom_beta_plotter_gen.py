@@ -532,7 +532,7 @@ def print_stats(dataset, name, plots_dir):
 
     # Print these stats
     sample_name = dataset["sample_id"].unique().item()
-    with open(os.path.join(plots_dir, "%s.stats.txt" % name, 'a')) as output_handle:
+    with open(os.path.join(plots_dir, "%s.stats.txt" % name), 'a') as output_handle:
         # Print total basepairs
         output_handle.write("# Stats for sample '%s' #\n" % sample_name)
         output_handle.write("Total basepairs:\n")
