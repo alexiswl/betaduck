@@ -8,10 +8,12 @@ defaults::ncurses-6.1-hf484d3e_0
 defaults::openssl-1.0.2p-h14c3975_0
 defaults::pip-10.0.1-py37_0
 defaults::python-3.7.0-h6e4f718_3
+defaults::pyyaml-3.13-py37h14c3975_0
 defaults::readline-7.0-h7b6447c_5
 defaults::setuptools-40.4.3-py37_0
 defaults::sqlite-3.25.2-h7b6447c_0
 defaults::tk-8.6.8-hbc83047_0
 defaults::wheel-0.32.1-py37_0
 defaults::xz-5.2.4-h14c3975_4
+defaults::yaml-0.1.7-had09818_2
 defaults::zlib-1.2.11-ha838bed_2
