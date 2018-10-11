@@ -87,7 +87,7 @@ def get_all_files(sequencing_summary_dir, fastq_dir, fast5_dir):
 def output_yaml(yaml_file, dataset):
     logging.info("Printing yaml file to %s" % yaml_file)
     with open(yaml_file, 'w') as file:
-        yaml.dump(json.loads(dataset.to_json(orient='records')), file, default_flow_style=True)
+        yaml.dump(json.loads(dataset.to_json(orient='records')), file, default_flow_style=False)
 
 
 def main(args):
@@ -95,8 +95,8 @@ def main(args):
     for arg, value in sorted(vars(args).items()):
         logger.info("Argument %s: %r", arg, value)
 
-    dataset = get_all_files(sequencing_summary_dir=args.sequencing_summary_dir,
-                            fastq_dir=args.fastq_dir, fast5_dir=args.fast5_dir)
+    dataset = get_all_files(sequencing_summary_dir=args.sequencing_summary_path,
+                            fastq_dir=args.fastq_path, fast5_dir=args.fast5_path)
 
     logging.info("Obtained %d folders" % dataset.shape[0])
 
