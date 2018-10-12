@@ -8,6 +8,8 @@ import subprocess
 import logging
 import os
 import concurrent.futures
+import numpy as np
+import time
 
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
@@ -44,17 +46,20 @@ def run_process(config_data, keep=False, overwrite=False, dry_run=False):
     # Do we want to overwrite
     if overwrite:
         tar_command.append("--overwrite")
-
+  
     tar_proc = subprocess.run(tar_command, capture_output=True)
+    time.sleep(2)
 
     if tar_proc.returncode == 0:
         logging.info("Process completed successfully")
         logging.info("Stdout = %s" % tar_proc.stdout.decode())
         logging.info("Stderr = %s" % tar_proc.stderr.decode())
+        return True
     else:
         logging.warning("Process returned non-zero exit code.")
         logging.warning("Stdout = %s" % tar_proc.stdout.decode())
         logging.warning("Stderr = %s" % tar_proc.stderr.decode())
+        return False
 
 
 def main(args):
@@ -67,14 +72,16 @@ def main(args):
 
     # Reduce thread count unless already 1.
     threads = 1 if args.threads == 1 else args.threads - 1
-
     logging.info("Given we need to take of the parent script, running %d jobs in parallel" % threads)
-    with concurrent.futures.ProcessPoolExecutor(max_workers=threads) as executor:
-        for result in executor.map(run_process, dataframe.itertuples(),
-                                   keep=args.keep, overwrite=args.overwrite, dry_run=args.dry_run):
-            # No need to do anything with the result.
-            pass
-
+   
+    # Run in parallel 
+    with concurrent.futures.ThreadPoolExecutor(max_workers=threads) as executor:
+        iterator = {executor.submit(run_process, config, args.keep, args.overwrite, args.dry_run): 
+                    config for config in dataframe.itertuples()}
+        for item in concurrent.futures.as_completed(iterator):
+            pandas_input = iterator[item]
+            success = item.result()
+            
 
 if __name__ == "__main__":
     main()
