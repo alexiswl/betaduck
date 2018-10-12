@@ -13,7 +13,10 @@ from matplotlib.pylab import savefig
 from datetime import timedelta
 
 import seaborn as sns
+import logging
 
+logger = logging.getLogger()
+logger.setLevel(logging.DEBUG)
 
 # Plot yield
 def plot_yield(dataset, name, plots_dir):
@@ -656,6 +659,7 @@ def print_stats(dataset, name, plots_dir):
 
 def plot_data(dataset, name, plots_dir):
     # Add in the start_time_float_by_sample (allows us to later iterate through plots by sample.
+    logging.info("Adding some additional columns to the dataframe")
     dataset = convert_sample_time_columns(dataset)
 
     # Get read_count column
@@ -675,6 +679,7 @@ def plot_data(dataset, name, plots_dir):
 
     # Plot things
     # Matplotlib base plots
+    logging.info("Plotting yield and read time graphs")
     plot_yield(dataset, name, plots_dir)
     plot_yield_by_quality(dataset, name, plots_dir)
     plot_reads(dataset, name, plots_dir)
@@ -683,7 +688,10 @@ def plot_data(dataset, name, plots_dir):
 
     # Seaborn plots
     plot_read_hist(dataset, name, plots_dir)
+    logging.info("Plotting flowcell")
     plot_flowcell(dataset, name, plots_dir)
+
+    logging.info("Doing some additional qc plots")
     plot_pore_speed(dataset, name, plots_dir)
     plot_quality_hist(dataset, name, plots_dir)
     plot_quality_per_speed(dataset, name, plots_dir)
@@ -691,7 +699,9 @@ def plot_data(dataset, name, plots_dir):
     plot_events_ratio(dataset, name, plots_dir)
 
     # Final distplot
+    logging.info("Taking a subsample of 100000 points to do the pair plot")
     plot_pair_plot(dataset, name, plots_dir)
 
     # Print out stats
+    logging.info("Finishing up and printing out some stats")
     print_stats(dataset, name, plots_dir)

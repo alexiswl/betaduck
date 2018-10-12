@@ -3,11 +3,15 @@
 import argparse
 import os
 import pandas as pd
+import logging
 
 from betaduck.prom_beta_plotter_gen import plot_data
 from betaduck.prom_beta_plotter_reader import get_summary_files
 from betaduck.prom_beta_plotter_reader import get_fastq_files
 from betaduck.prom_beta_plotter_reader import read_summary_datasets, read_fastq_datasets
+
+logger = logging.getLogger()
+logger.setLevel(logging.DEBUG)
 
 """
 Sequencing summary file columns
@@ -41,6 +45,11 @@ def get_args():
 
 
 def main(args):
+
+    # Log arguments
+    for arg, value in sorted(vars(args).items()):
+        logger.info("Argument %s: %r", arg, value)
+
     # Get summary files
     summary_files = get_summary_files([summary_dir
                                        for summary_dir in args.summary_dir.split(",")])
@@ -49,13 +58,20 @@ def main(args):
     fastq_files = get_fastq_files([fastq_dir
                                    for fastq_dir in args.fastq_dir.split(",")])
 
+    # Reduce thread count unless already 1.
+    threads = 1 if args.threads == 1 else args.threads - 1
+    logging.info("Given we need to take of the parent script, running %d jobs in parallel" % threads)
+
     # Read in summary datasets
-    summary_datasets = read_summary_datasets(summary_files)
+    logging.info("Reading in summary datasets")
+    summary_datasets = read_summary_datasets(summary_files, args.threads)
 
     # Read in fastq_datasets
-    fastq_datasets = read_fastq_datasets(fastq_files)
+    logging.info("Reading in fastq datasets")
+    fastq_datasets = read_fastq_datasets(fastq_files, args.threads)
 
     # Merge summary and fastq datasets
+    logging.info("Merging datasets")
     dataset = pd.merge(summary_datasets, fastq_datasets, on=['read_id', 'run_id', 'channel'])
 
     # Check plots_dir exists
@@ -63,6 +79,7 @@ def main(args):
         os.mkdir(args.plots_dir)
 
     # Plot yields and histograms
+    logging.info("Generating plots")
     plot_data(dataset, args.name, args.plots_dir)
 
 
