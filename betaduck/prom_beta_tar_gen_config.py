@@ -7,6 +7,7 @@ import re
 import pandas as pd
 import json
 import logging
+import subprocess
 
 # """
 # Generate a yaml file used to run each of the alpha_light python commands
@@ -90,14 +91,28 @@ def output_yaml(yaml_file, dataset):
         yaml.dump(json.loads(dataset.to_json(orient='records')), file, default_flow_style=False)
 
 
+def sanitise_fastq_files(fastq_path):
+    sanitise_command = ['fix_concatenated_fastqs', '--input=%s' % fastq_path, "--non_recursive"]
+    logging.info("Running sanitiser on fastq files")
+    sanitise_proc = subprocess.run(sanitise_command, capture_output=True)
+    logging.info("Completed sanitation")
+
+    if sanitise_proc.returncode != 0:
+        logging.warning("Sanitiser produced non-zero exit code")
+        logging.warning("Stderr %s" % sanitise_proc.stderr.decode())
+
+
 def main(args):
     # Log arguments
     for arg, value in sorted(vars(args).items()):
         logger.info("Argument %s: %r", arg, value)
 
+    # First sanitise fastq files
+    sanitise_fastq_files(args.fastq_path)
+
+    # Read in dataset
     dataset = get_all_files(sequencing_summary_dir=args.sequencing_summary_path,
                             fastq_dir=args.fastq_path, fast5_dir=args.fast5_path)
-
     logging.info("Obtained %d folders" % dataset.shape[0])
 
     # Get flowcell id
