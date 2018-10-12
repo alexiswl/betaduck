@@ -452,8 +452,14 @@ def plot_quality_per_speed(dataset, name, plots_dir):
 def plot_quality_per_readlength(dataset, name, plots_dir):
     # Seaborn nomenclature for joint plots are a little different
     sns.set_style("dark")
+
+    # Trim the readset first
+    max_quantile = 0.99
+    max_read = dataset['sequence_length_template'].quantile(max_quantile)
+    trimmed_set = dataset.query("sequence_length_template < %d" % max_read)
+
     g = sns.jointplot(x='sequence_length_template', y='mean_qscore_template',
-                      data=dataset, kind='hex')
+                      data=trimmed_set, kind='hex')
 
     # Add pearson stat
     g.annotate(stats.pearsonr)
@@ -462,7 +468,7 @@ def plot_quality_per_readlength(dataset, name, plots_dir):
     g.set_axis_labels("Sequence length", "Mean Q-score")
 
     # Set x ticks: 
-    g.ax_joint.xaxis.set_major_formatter(FuncFormatter(x_yield_to_human_readable))
+    g.ax_joint.xaxis.set_major_formatter(FuncFormatter(x_hist_to_human_readable))
 
     # Set title
     g.fig.suptitle("Sequence length against Q-score for %s" % name)
@@ -491,8 +497,19 @@ def plot_pair_plot(dataset, name, plots_dir):
                       "sequence_length_template": "Read Length",
                       "events_ratio": "Events / base"}
 
+    # Get sample
+    sample_set = dataset.filter(items=items).sample(100000)
+
+    # Filter out quantiles
+    max_quantile = 0.99
+    max_events = sample_set['events_ratio'].quantile(max_quantile)
+    max_read_length = sample_set['sequence_length_template'].quantile(max_quantile)
+
+    # Trimmed set
+    trimmed_set = sample_set.query("sequence_length_template < %d & events_ratio < %d" % (max_read_length, max_events))
+
     # Plot grid
-    g = sns.PairGrid(dataset.filter(items=items).rename(columns=rename_columns).sample(100000))
+    g = sns.PairGrid(trimmed_set.rename(columns=rename_columns))
 
     # KDE plots for each series against itself
     g.map_diag(sns.kdeplot)
