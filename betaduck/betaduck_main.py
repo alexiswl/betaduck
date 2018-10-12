@@ -54,6 +54,12 @@ def main():
                                        help="Use the config file to now tar up the directories")
     tar_parser.add_argument("--config", required=True,
                             help="Path to config file")
+    tar_parser.add_argument("--keep", default=False, action='store_true',
+                            help="Keep the original files")
+    tar_parser.add_argument("--dry_run", default=False, action='store_true',
+                            help="Just log the commands, do not run them")
+    tar_parser.add_argument("--overwrite", default=False, action='store_true',
+                            help="Overwrite files if they already exist")
     tar_parser.set_defaults(func=run_function)
 
     # Plotter
