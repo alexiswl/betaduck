@@ -65,7 +65,7 @@ def main():
     tar_parser.add_argument("--overwrite", default=False, action='store_true',
                             help="Overwrite files if they already exist")
     tar_parser.add_argument("--threads", default=1, type=int,
-                            help="Number of types ")
+                            help="Number of folders to zip up simultaneously")
     tar_parser.set_defaults(func=run_function)
 
     # Plotter
@@ -79,7 +79,7 @@ def main():
                                 help="Where do the plots go")
     plotter_parser.add_argument("--name", type=str, required=True,
                                 help="Titles for plots")
-    plotter_parser.add_argument("--threads", type=str, required=True,
+    plotter_parser.add_argument("--threads", type=int, default=1,
                                 help="Read the dataframes in parallel")
     plotter_parser.set_defaults(func=run_function)
 
