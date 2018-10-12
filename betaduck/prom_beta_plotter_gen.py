@@ -501,9 +501,10 @@ def plot_pair_plot(dataset, name, plots_dir):
     sample_set = dataset.filter(items=items).sample(100000)
 
     # Filter out quantiles
-    max_quantile = 0.99
-    max_events = sample_set['events_ratio'].quantile(max_quantile)
-    max_read_length = sample_set['sequence_length_template'].quantile(max_quantile)
+    max_quantile_events_ratio = 0.95
+    max_quantile_read_length = 0.99
+    max_events = sample_set['events_ratio'].quantile(max_quantile_events_ratio)
+    max_read_length = sample_set['sequence_length_template'].quantile(max_quantile_read_length)
 
     # Trimmed set
     trimmed_set = sample_set.query("sequence_length_template < %d & events_ratio < %d" % (max_read_length, max_events))
