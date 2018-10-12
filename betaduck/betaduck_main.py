@@ -75,6 +75,7 @@ def main():
                                 help="Where do the plots go")
     plotter_parser.add_argument("--name", type=str, required=True,
                                 help="Titles for plots")
+    plotter_parser.set_defaults(func=run_function)
 
     args = parser.parse_args()
 

@@ -14,6 +14,9 @@ RUN conda install --file requirements.txt --yes
 # Re-update conda
 RUN conda update --all --yes
 
+# Upgrade pip
+RUN pip install --upgrade pip
+
 # Install poreduck using pip
 RUN pip install -e .
 
