@@ -62,6 +62,8 @@ def main():
                             help="Just log the commands, do not run them")
     tar_parser.add_argument("--overwrite", default=False, action='store_true',
                             help="Overwrite files if they already exist")
+    tar_parser.add_argument("--threads", default=1, type=int,
+                            help="Number of types ")
     tar_parser.set_defaults(func=run_function)
 
     # Plotter

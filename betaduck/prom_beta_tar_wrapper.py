@@ -7,6 +7,7 @@ import pandas as pd
 import subprocess
 import logging
 import os
+import concurrent.futures
 
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
@@ -64,9 +65,15 @@ def main(args):
     # Read in pandas dataframe
     dataframe = pd.DataFrame(read_config(args.config))
 
-    # Iterate through each row of the configuration file.
-    for row in dataframe.itertuples():
-        run_process(row, keep=args.keep, overwrite=args.overwrite, dry_run=args.dry_run)
+    # Reduce thread count unless already 1.
+    threads = 1 if args.threads == 1 else args.threads - 1
+
+    logging.info("Given we need to take of the parent script, running %d jobs in parallel" % threads)
+    with concurrent.futures.ProcessPoolExecutor(max_workers=threads) as executor:
+        for result in executor.map(run_process, dataframe.itertuples(),
+                                   keep=args.keep, overwrite=args.overwrite, dry_run=args.dry_run):
+            # No need to do anything with the result.
+            pass
 
 
 if __name__ == "__main__":
