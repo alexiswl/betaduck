@@ -23,7 +23,7 @@ def run_process(config_data, keep=False, overwrite=False, dry_run=False):
     here = os.path.dirname(os.path.realpath(__file__))
 
     # Generate tar command
-    tar_command = [os.path.join(here, "prom_beta_tar_runner.py"),
+    tar_command = ["python", os.path.join(here, "prom_beta_tar_runner.py"),
                    # Then come the options.
                    "--sequencing_summary_path=%s" % config_data.sequencing_summary_file,
                    "--fastq_path=%s" % config_data.fastq_file,
