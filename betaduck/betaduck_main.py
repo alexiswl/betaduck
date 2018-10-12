@@ -47,6 +47,8 @@ def main():
                                help="Path to folder of fast5 files", required=True)
     config_parser.add_argument("--output_yaml_file",
                                help="Yaml file to create", required=True)
+    config_parser.add_argument("--sanitiser", action='store_true', default=False, 
+                               help="run fastq sanitiser before generating config")
     config_parser.set_defaults(func=run_function)
 
     # Tar command

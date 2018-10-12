@@ -135,7 +135,8 @@ def main(args):
         logger.info("Argument %s: %r", arg, value)
 
     # First sanitise fastq files
-    sanitise_fastq_files(args.fastq_path)
+    if args.sanitiser:
+        sanitise_fastq_files(args.fastq_path)
 
     # Read in dataset
     dataset = get_all_files(sequencing_summary_dir=os.path.abspath(args.sequencing_summary_path),
