@@ -68,7 +68,7 @@ def get_all_files(sequencing_summary_dir, fastq_dir, fast5_dir):
     logging.info("Grabbing a flowcell ID from the fast5 attributes")
     flowcell_id = None
     rnumber = None
-    while flowcell_id = None and rnumber = None:
+    while flowcell_id is None or rnumber is None:
         for fast5_dir in fast5_dirs:
             fast5_files = [os.path.join(fast5_dir, fast5_file) 
                            for fast5_file in os.listdir(fast5_dir)
