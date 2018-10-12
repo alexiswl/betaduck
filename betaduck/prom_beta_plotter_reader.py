@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 import gzip
 from Bio import SeqIO
-
+import concurrent.futures
 
 def get_summary_files(summary_dirs):
     summary_files = [os.path.join(summary_dir, summary_file)
@@ -68,22 +68,39 @@ def get_fastq_dataframe(fastq_file, is_gzipped=True):
         return pd.DataFrame(columns=["read_id", "run_id", "sample_id", "read", "channel", "start_time_utc"])
 
 
-def read_fastq_datasets(fastq_files):
+def read_fastq_datasets(fastq_files, threads):
+    # Run in parallel
+    datasets = []
+    with concurrent.futures.ThreadPoolExecutor(max_workers=threads) as executor:
+        iterator = {executor.submit(get_fastq_dataframe, fastq_file, is_gzipped=True):
+                    fastq_file for fastq_file in fastq_files}
+        for item in concurrent.futures.as_completed(iterator):
+            pandas_input = iterator[item]
+            datasets.append(item.result())
     # Read in each of the fastq files and retrieve header info
-    dataset = pd.concat([get_fastq_dataframe(fastq_file, is_gzipped=True)
-                         for fastq_file in fastq_files],
-                        sort=True, ignore_index=True)
+    dataset = pd.concat(datasets, sort=True, ignore_index=True)
+
     # Return dataset
     return dataset
 
 
-def read_summary_datasets(sequencing_summary_files):
-    # Read in each of the csv files.
-    dataset = [pd.read_csv(sequencing_summary_file, sep="\t", header=0)
-               for sequencing_summary_file in sequencing_summary_files]
+def read_summary_dataset(sequencing_summary_file):
+    # Read in the dataset, used by parallel script below
+    return pd.read_csv(sequencing_summary_file, sep="\t", header=0)
+
+
+def read_summary_datasets(sequencing_summary_files, threads):
+    # Run in parallel
+    datasets = []
+    with concurrent.futures.ThreadPoolExecutor(max_workers=threads) as executor:
+        iterator = {executor.submit(read_summary_dataset, sequencing_summary_file):
+                        sequencing_summary_file for sequencing_summary_file in sequencing_summary_files}
+        for item in concurrent.futures.as_completed(iterator):
+            pandas_input = iterator[item]
+            datasets.append(item.result())
 
     # Merge the list of datasets
-    dataset = merge_summary_dataset(dataset)
+    dataset = merge_summary_dataset(datasets)
 
     # Reset the dtypes for the time columns
     dataset = set_summary_time_dtypes(dataset)
