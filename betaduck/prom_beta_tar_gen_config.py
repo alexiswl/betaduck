@@ -159,6 +159,10 @@ def main(args):
     dataset['md5_fast5'] = output_md5sum_fast5
     dataset['md5_fastq'] = output_md5sum_fastq
 
+    # Drop the last row if the run is still goin.
+    if args.active:
+        dataset.drop(dataset.tail(1).index,inplace=True)
+
     # Output the yaml file
     output_yaml(args.output_yaml_file, dataset)
 

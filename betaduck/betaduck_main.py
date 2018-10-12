@@ -49,6 +49,8 @@ def main():
                                help="Yaml file to create", required=True)
     config_parser.add_argument("--sanitiser", action='store_true', default=False, 
                                help="run fastq sanitiser before generating config")
+    config_parser.add_argument("--active", action='store_true', default=False,
+                               help="Don't tar up the last folder as data may still be writing to there")
     config_parser.set_defaults(func=run_function)
 
     # Tar command
