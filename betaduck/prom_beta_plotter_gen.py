@@ -106,6 +106,42 @@ def plot_reads(dataset, name, plots_dir):
     plt.close('all')
 
 
+# Plot read by quality
+def plot_read_by_quality(dataset, name, plots_dir):
+    # Set up plot
+    fig, ax = plt.subplots(1)
+
+    # Iterate through quality and plot each
+    q_classes = {"All": "Blue", "Passed": "Green", "Failed": "Red"}
+    for quality, col in q_classes.items():
+        # Plot the total yield
+        if quality == 'All':
+            dataset.set_index("start_time_float_by_sample")["read_count"].plot(ax=ax, color=col)
+        # Plot the yield per quality
+        else:
+            query = "qualitative_pass == '%s'" % quality
+            dataset.set_index("start_time_float_by_sample").query(query)['quality_count'].plot(ax=ax, color=col)
+
+    # Set x and y ticks
+    ax.yaxis.set_major_formatter(FuncFormatter(y_yield_to_human_readable))
+    ax.xaxis.set_major_formatter(FuncFormatter(x_yield_to_human_readable))
+
+    # Set x and y labels
+    ax.set_title("Read count over time (by quality) for %s" % name)
+    ax.set_xlabel("Time in (HH:MM)")
+    ax.set_ylabel("Cumulative Read Count")
+
+    # Configure legend
+    ax.legend(q_classes.keys())
+
+    # Format nicely
+    fig.tight_layout()
+
+    # Save and close figure
+    savefig(os.path.join(plots_dir, "%s.quality.reads.png" % name))
+    plt.close('all')
+
+
 def plot_flowcell(dataset, name, plots_dir):
     # Set up plots 
     fig, ax = plt.subplots()
@@ -175,7 +211,7 @@ def plot_flowcell(dataset, name, plots_dir):
 
 
 # Plot histogram
-def plot_hist(dataset, name, plots_dir):
+def plot_weighted_hist(dataset, name, plots_dir):
     # Set globals
     num_bins = 50
     max_quantile = 0.999
@@ -215,8 +251,40 @@ def plot_hist(dataset, name, plots_dir):
     fig.tight_layout()
 
     # Save and close figure
-    savefig(os.path.join(plots_dir, "%s.hist.png" % name))
+    savefig(os.path.join(plots_dir, "%s.weighted.hist.png" % name))
     plt.close('all')
+
+
+def plot_read_hist(dataset, name, plots_dir):
+    # Much simpler histogram with seaborn
+
+    # Open up a plotting frame
+    fig, ax = plt.subplots(1)
+
+    # Set seaborn style
+    sns.set_style("darkgrid")
+
+    # Plot distribution
+    sns.distplot(dataset['sequence_length_template'],
+                 hist=True, kde=True, ax=ax)
+
+    # Despine left axis
+    sns.despine(fig=fig, ax=ax, left=True)
+
+    # Set titles
+    ax.set_title("Read Length Distribution")
+
+    # Set x and y lables
+    ax.set_xlabel("Read Length")
+
+    # Set x-axis
+    ax.xaxis.set_major_formatter(FuncFormatter(x_hist_to_human_readable))
+
+    # Ensure labels are not missed
+    fig.tight_layout()
+
+    # Save and close figure
+    savefig(os.path.join(plots_dir, "%s.unweighted.hist.png" % name))
 
 
 def plot_quality_hist(dataset, name, plots_dir):
@@ -245,7 +313,7 @@ def plot_quality_hist(dataset, name, plots_dir):
     fig.tight_layout()
 
     # Save and close figure
-    savefig(os.path.join(plots_dir, "%s.q.hist.png" % name))
+    savefig(os.path.join(plots_dir, "%s.quality.hist.png" % name))
 
 
 def reformat_human_friendly(s):
@@ -362,10 +430,10 @@ def plot_quality_per_speed(dataset, name, plots_dir):
     g.annotate(stats.pearsonr)
 
     # Set axis labels
-    g.set_axis_labels("Pore Speed (b/s)", "Mean q-score Template")
+    g.set_axis_labels("Pore Speed (b/s)", "Mean Q-score")
 
     # Set title
-    g.fig.suptitle("Pore Speed against q-score template for %s" % name)
+    g.fig.suptitle("Pore Speed vs Q-score for %s" % name)
 
     # Format nicely.
     g.fig.tight_layout()
@@ -375,6 +443,36 @@ def plot_quality_per_speed(dataset, name, plots_dir):
 
     # Save and close the figure
     savefig(os.path.join(plots_dir, "%s.speed_vs_qscore.png" % name))
+    plt.close('all')
+
+
+def plot_quality_per_readlength(dataset, name, plots_dir):
+    # Seaborn nomenclature for joint plots are a little different
+    sns.set_style("dark")
+    g = sns.jointplot(x='sequence_length_template', y='mean_qscore_template',
+                      data=dataset, kind='hex')
+
+    # Add pearson stat
+    g.annotate(stats.pearsonr)
+
+    # Set axis labels
+    g.set_axis_labels("Sequence length", "Mean Q-score")
+
+    # Set x ticks:
+    for ax in g.ax_joint[0]:
+        ax.xaxis.set_major_formatter(FuncFormatter(x_yield_to_human_readable))
+
+    # Set title
+    g.fig.suptitle("Sequence length against Q-score for %s" % name)
+
+    # Format nicely.
+    g.fig.tight_layout()
+
+    # Reduce plot to make room for suptitle
+    g.fig.subplots_adjust(top=0.95)
+
+    # Save and close the figure
+    savefig(os.path.join(plots_dir, "%s.length_vs_qscore.png" % name))
     plt.close('all')
 
 
@@ -392,7 +490,7 @@ def plot_pair_plot(dataset, name, plots_dir):
                       "events_ratio": "Events / base"}
 
     # Plot grid
-    g = sns.PairGrid(dataset.filter(items=items).rename(columns=rename_columns))
+    g = sns.PairGrid(dataset.filter(items=items).rename(columns=rename_columns).sample(100000))
 
     # KDE plots for each series against itself
     g.map_diag(sns.kdeplot)
@@ -409,7 +507,7 @@ def plot_pair_plot(dataset, name, plots_dir):
     g.fig.subplots_adjust(top=0.95)
 
     # Save figure
-    savefig(os.path.join(plots_dir, "%s.pore_speed.png" % name))
+    savefig(os.path.join(plots_dir, "%s.pair_plot.png" % name))
     plt.close('all')
 
 
@@ -487,9 +585,14 @@ def get_quality_yield(dataset):
     return dataset.groupby(['pass'])['sequence_length_template'].cumsum()
 
 
+def get_quality_count(dataset):
+    # Get the yield per quality
+    return dataset.groupby(['pass']).cumcount() + 1
+
+
 def get_read_count(dataset):
     # Get the read count dataset
-    return dataset.reset_index()['index']
+    return dataset.reset_index()['index'] + 1
 
 
 def print_stats(dataset, name, plots_dir):
@@ -567,22 +670,28 @@ def plot_data(dataset, name, plots_dir):
     # Get the cumulative quality yield
     dataset['quality_yield'] = get_quality_yield(dataset)
 
+    # Get the cumulative  quality count
+    dataset['quality_count'] = get_quality_count(dataset)
+
     # Plot things
     # Matplotlib base plots
     plot_yield(dataset, name, plots_dir)
     plot_yield_by_quality(dataset, name, plots_dir)
     plot_reads(dataset, name, plots_dir)
-    plot_hist(dataset, name, plots_dir)
+    plot_read_by_quality(dataset, name, plots_dir)
+    plot_weighted_hist(dataset, name, plots_dir)
 
     # Seaborn plots
+    plot_read_hist(dataset, name, plots_dir)
     plot_flowcell(dataset, name, plots_dir)
     plot_pore_speed(dataset, name, plots_dir)
     plot_quality_hist(dataset, name, plots_dir)
     plot_quality_per_speed(dataset, name, plots_dir)
+    plot_quality_per_readlength(dataset, name, plots_dir)
     plot_events_ratio(dataset, name, plots_dir)
 
     # Final distplot
-    #plot_pair_plot(dataset, name, plots_dir) ommitted until we figure out how to speed it up.
+    plot_pair_plot(dataset, name, plots_dir)
 
     # Print out stats
     print_stats(dataset, name, plots_dir)

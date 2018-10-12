@@ -17,6 +17,9 @@ RUN conda update --all --yes
 # Install poreduck using pip
 RUN pip install -e .
 
+# Install deconcatenate fastqs
+RUN pip install ont-fastq-deconcatenate
+
 # Copy the entry point for the user
 COPY ./docker-entrypoint.sh /
 
@@ -27,5 +30,5 @@ WORKDIR /data
 RUN useradd -ms /bin/bash docker
 USER docker
 
-# Set the entrypoint to be 'poreduck'
+# Set the entrypoint to be 'betaduck'
 ENTRYPOINT ["/docker-entrypoint.sh"]
