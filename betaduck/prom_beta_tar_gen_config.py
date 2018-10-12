@@ -70,6 +70,7 @@ def get_all_files(sequencing_summary_dir, fastq_dir, fast5_dir):
     rnumber = None
     while flowcell_id is None or rnumber is None:
         for fast5_dir in fast5_dirs:
+            logging.info("Trying in %s" % fast5_dir)
             fast5_files = [os.path.join(fast5_dir, fast5_file) 
                            for fast5_file in os.listdir(fast5_dir)
                            if fast5_file.endswith('.fast5')
@@ -79,8 +80,10 @@ def get_all_files(sequencing_summary_dir, fastq_dir, fast5_dir):
                 rnumber = get_random_number(fast5_file)
                 if rnumber is not None and flowcell_id is not None:
                     break
-        if rnumber is not None and flowcell_id is not None:
-            break
+                else:
+                    logging.info("Trying another file")
+            if rnumber is not None and flowcell_id is not None:
+                break
 
     logging.info("Got flowcell ID as %s" % flowcell_id) 
     logging.info("Got rnumber as %s" % rnumber)
