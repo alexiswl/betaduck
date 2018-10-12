@@ -45,14 +45,6 @@ def main():
                                help="Path to fastq files", required=True)
     config_parser.add_argument("--fast5_path",
                                help="Path to folder of fast5 files", required=True)
-    config_parser.add_argument("--flowcellID",
-                               help="Flowcell ID to add to suffix of tar file", required=True)
-    config_parser.add_argument("--rnumber",
-                               help="Add random number to folder", required=True)
-    config_parser.add_argument("--output_md5sum_fast5",
-                               help="File to append to md5sum for fast5 files", required=True)
-    config_parser.add_argument("--output_md5sum_fastq",
-                               help="File to append to md5sym for fastq files", required=True)
     config_parser.add_argument("--output_yaml_file",
                                help="Yaml file to create", required=True)
     config_parser.set_defaults(func=run_function)

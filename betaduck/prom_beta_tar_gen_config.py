@@ -8,6 +8,7 @@ import pandas as pd
 import json
 import logging
 import subprocess
+import h5py
 
 # """
 # Generate a yaml file used to run each of the alpha_light python commands
@@ -17,26 +18,25 @@ logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
 
 
-def get_args():
-    parser = argparse.ArgumentParser(description="Generate a yaml file")
-    parser.add_argument('--sequencing_summary_dir',
-                        help="Path to sequencing_summary folder", required=True)
-    parser.add_argument('--fastq_dir',
-                        help="Path to fastq files", required=True)
-    parser.add_argument("--fast5_dir",
-                        help="Path to folder of fast5 files", required=True)
-    parser.add_argument("--flowcellID",
-                        help="Flowcell ID to add to suffix of tar file", required=True)
-    parser.add_argument("--rnumber",
-                        help="Add random number to folder", required=True)
-    parser.add_argument("--output_md5sum_fast5", required=True,
-                        help="Where do you want the md5 for the fast5 files")
-    parser.add_argument("--output_md5sum_fastq", required=True,
-                        help="Where do you want the md5 for the fastq files")
-    parser.add_argument("--output_yaml_file",
-                        help="Yaml file to create", required=True)
+def get_flowcell_id(fast5_file):
+    with h5py.File(fast5_file) as f:
+        # Get flowcell ID from UniqueGlobalKey/tracking_id
+        try:
+            read_attributes = dict(f['UniqueGlobalKey/tracking_id'].attrs.items())
+        except KeyError:
+            return None
 
-    return parser.parse_args()
+        return read_attributes['flow_cell_id']
+
+
+def get_random_number(fast5_file):
+    _, rnumber, _, read, _, channel, _ = fast5_file.rsplit("_", 7)
+    try:
+        rnumber = int(rnumber)
+        return rnumber
+    except TypeError:
+        logging.warning("Tried to get rnumber from fast5 file. Got %s from %s" % (fast5_file, rnumber))
+        return None
 
 
 def get_all_files(sequencing_summary_dir, fastq_dir, fast5_dir):
@@ -58,6 +58,27 @@ def get_all_files(sequencing_summary_dir, fastq_dir, fast5_dir):
                   for fast5_folder in os.listdir(fast5_dir)
                   if os.path.isdir(os.path.join(fast5_dir, fast5_folder))
                   and re.match("^\d+$", fast5_folder)]
+
+    # Get rnumber and flowcell id
+    fast5_files = [os.path.join(fast5_dir, fast5_file)
+                   for fast5_dir in fast5_dirs
+                   for fast5_file in os.listdir(fast5_dir)
+                   if fast5_file.endswith('.fast5')
+                   and os.path.isfile(os.path.join(fast5_dir, fast5_file))]
+
+    flowcell_id = None
+    for fast5_file in fast5_files:
+        flowcell_id = get_flowcell_id(fast5_file)
+        if flowcell_id is not None:
+            break
+    logging.info("Got flowcell ID as %s" % flowcell_id)
+
+    rnumber = None
+    for fast5_file in fast5_files:
+        rnumber = get_random_number(fast5_file)
+        if rnumber is not None:
+            break
+    logging.info("Got rnumber as %s" % rnumber)
 
     sequencing_summary_df = pd.DataFrame(sequencing_summary_files, columns=["sequencing_summary_file"])
     fastq_df = pd.DataFrame(fastq_files, columns=["fastq_file"])
@@ -82,7 +103,13 @@ def get_all_files(sequencing_summary_dir, fastq_dir, fast5_dir):
     fast5_df.set_index("number", inplace=True)
 
     # Now merge each using pd.concat
-    return pd.concat([sequencing_summary_df, fastq_df, fast5_df], axis='columns', join='inner', sort=True)
+    dataset = pd.concat([sequencing_summary_df, fastq_df, fast5_df], axis='columns', join='inner', sort=True)
+
+    # Add on flowcellIDs and rnumbers
+    dataset['FlowcellID'] = flowcell_id
+    dataset['rnumber'] = rnumber
+
+    return dataset
 
 
 def output_yaml(yaml_file, dataset):
@@ -111,19 +138,16 @@ def main(args):
     sanitise_fastq_files(args.fastq_path)
 
     # Read in dataset
-    dataset = get_all_files(sequencing_summary_dir=args.sequencing_summary_path,
-                            fastq_dir=args.fastq_path, fast5_dir=args.fast5_path)
+    dataset = get_all_files(sequencing_summary_dir=os.path.abspath(args.sequencing_summary_path),
+                            fastq_dir=os.path.abspath(args.fastq_path),
+                            fast5_dir=os.path.abspath(args.fast5_path))
     logging.info("Obtained %d folders" % dataset.shape[0])
 
-    # Get flowcell id
-    dataset["FlowcellID"] = args.flowcellID
-
-    # Get Rnumber
-    dataset['rnumber'] = args.rnumber
-
     # Add md5sum outputs
-    dataset['md5_fast5'] = args.output_md5sum_fast5
-    dataset['md5_fastq'] = args.output_md5sum_fastq
+    output_md5sum_fast5 = os.path.join(os.path.abspath(args.fast5_path), "checksum.fast5.md5")
+    output_md5sum_fastq = os.path.join(os.path.abspath(args.fastq_path), "checksum.fastq.md5")
+    dataset['md5_fast5'] = output_md5sum_fast5
+    dataset['md5_fastq'] = output_md5sum_fastq
 
     # Output the yaml file
     output_yaml(args.output_yaml_file, dataset)
