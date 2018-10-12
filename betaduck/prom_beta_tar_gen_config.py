@@ -155,7 +155,7 @@ def main(args):
 
     # Add md5sum outputs
     output_md5sum_fast5 = os.path.join(os.path.abspath(args.fast5_path), "checksum.fast5.md5")
-    output_md5sum_fastq = os.path.join(os.path.abspath(args.fastq_path), "checksum.fastq.md5")
+    output_md5sum_fastq = os.path.join(os.path.abspath(args.fastq_path), 'fastq', "checksum.fastq.md5")
     dataset['md5_fast5'] = output_md5sum_fast5
     dataset['md5_fastq'] = output_md5sum_fastq
 
