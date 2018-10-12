@@ -24,6 +24,7 @@ def get_flowcell_id(fast5_file):
         try:
             read_attributes = dict(f['UniqueGlobalKey/tracking_id'].attrs.items())
         except KeyError:
+            logging.warning("Could not find flowcell ID from %s" % fast5_file)
             return None
 
         return read_attributes['flow_cell_id']
@@ -46,20 +47,25 @@ def get_all_files(sequencing_summary_dir, fastq_dir, fast5_dir):
     :param fastq_dir: string
     :param fast5_dir: string
     """
+
+    logging.info("Grabbing sequencing summary files")
     sequencing_summary_files = [os.path.join(sequencing_summary_dir, sequencing_summary_file)
                                 for sequencing_summary_file in os.listdir(sequencing_summary_dir)
                                 if re.match('sequencing_summary_\d+.txt', sequencing_summary_file)]
 
+    logging.info("Grabbing fastq files")
     fastq_files = [os.path.join(fastq_dir, fastq_file)
                    for fastq_file in os.listdir(sequencing_summary_dir)
                    if re.match('fastq_\d+.fastq', fastq_file)]
 
+    logging.info("Grabbig fast5 directories")
     fast5_dirs = [os.path.join(fast5_dir, fast5_folder)
                   for fast5_folder in os.listdir(fast5_dir)
                   if os.path.isdir(os.path.join(fast5_dir, fast5_folder))
                   and re.match("^\d+$", fast5_folder)]
 
     # Get rnumber and flowcell id
+    logging.info("Grabbing all fast5 files to find a flowcell ID")
     fast5_files = [os.path.join(fast5_dir, fast5_file)
                    for fast5_dir in fast5_dirs
                    for fast5_file in os.listdir(fast5_dir)
