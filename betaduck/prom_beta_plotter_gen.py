@@ -123,7 +123,7 @@ def plot_read_by_quality(dataset, name, plots_dir):
             dataset.set_index("start_time_float_by_sample").query(query)['quality_count'].plot(ax=ax, color=col)
 
     # Set x and y ticks
-    ax.yaxis.set_major_formatter(FuncFormatter(y_yield_to_human_readable))
+    ax.yaxis.set_major_formatter(FuncFormatter(y_count_to_human_readable))
     ax.xaxis.set_major_formatter(FuncFormatter(x_yield_to_human_readable))
 
     # Set x and y labels
@@ -265,7 +265,10 @@ def plot_read_hist(dataset, name, plots_dir):
     sns.set_style("darkgrid")
 
     # Plot distribution
-    sns.distplot(dataset['sequence_length_template'],
+    max_quantile=0.999
+    max_length = dataset['sequence_length_template'].quantile(max_quantile)
+    trimmed = dataset.query("sequence_length_template < %s" % max_length)['sequence_length_template']
+    sns.distplot(trimmed,
                  hist=True, kde=True, ax=ax)
 
     # Despine left axis
@@ -458,9 +461,8 @@ def plot_quality_per_readlength(dataset, name, plots_dir):
     # Set axis labels
     g.set_axis_labels("Sequence length", "Mean Q-score")
 
-    # Set x ticks:
-    for ax in g.ax_joint[0]:
-        ax.xaxis.set_major_formatter(FuncFormatter(x_yield_to_human_readable))
+    # Set x ticks: 
+    g.ax_joint.xaxis.set_major_formatter(FuncFormatter(x_yield_to_human_readable))
 
     # Set title
     g.fig.suptitle("Sequence length against Q-score for %s" % name)
