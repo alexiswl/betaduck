@@ -60,7 +60,7 @@ Example:
 ### betaduck tidy 
 The work has been done for us in the previous script.
 
-**betaduck tar parameters**
+**betaduck tidy parameters**
 
 * --config
   + Path to config file generated in the previous script
