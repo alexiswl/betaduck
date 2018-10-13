@@ -27,7 +27,7 @@ You may need to log out and log back in again for the super user permissions to 
 `docker pull alexiswl/betaduck:18.07.1-3`  
 18.07.1-3 represents the current MinKNOW version.
 
-## Tarring and compressing files
+## Tidying and compressing files
 
 ### betaduck config 
 First we'll generate the config file. This is used as an input in the next command as to which files and folders to work on.  
@@ -58,7 +58,7 @@ Example:
 
 
 ### betaduck tidy 
-The work has been done for us in the previous script.
+Most of the hard work has been done for us in the previous script.  
 
 **betaduck tidy parameters**
 
