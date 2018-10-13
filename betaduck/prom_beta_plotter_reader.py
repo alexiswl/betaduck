@@ -119,24 +119,6 @@ def read_summary_datasets(sequencing_summary_files, threads):
     # Get events ratio
     dataset['events_ratio'] = get_events_ratio(dataset)
 
-    # Add in the start_time_float_by_sample (allows us to later iterate through plots by sample.
-    dataset = convert_sample_time_columns(dataset)
-
-    # Get read_count column
-    dataset['read_count'] = get_read_count(dataset)
-
-    # Get yield column
-    dataset['yield'] = get_yield(dataset)
-
-    # Get the cumulative channel yield
-    dataset['channel_yield'] = get_channel_yield(dataset)
-
-    # Get the cumulative quality yield
-    dataset['quality_yield'] = get_quality_yield(dataset)
-
-    # Get the cumulative  quality count
-    dataset['quality_count'] = get_quality_count(dataset)
-
     # Return the object
     return dataset
 
