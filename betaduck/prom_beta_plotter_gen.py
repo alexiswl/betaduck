@@ -126,7 +126,7 @@ def plot_read_by_quality(dataset, name, plots_dir):
             dataset.set_index("start_time_float_by_sample").query(query)['quality_count'].plot(ax=ax, color=col)
 
     # Set x and y ticks
-    ax.yaxis.set_major_formatter(FuncFormatter(y_yield_to_human_readable))
+    ax.yaxis.set_major_formatter(FuncFormatter(y_count_to_human_readable))
     ax.xaxis.set_major_formatter(FuncFormatter(x_yield_to_human_readable))
 
     # Set x and y labels
@@ -268,7 +268,10 @@ def plot_read_hist(dataset, name, plots_dir):
     sns.set_style("darkgrid")
 
     # Plot distribution
-    sns.distplot(dataset['sequence_length_template'],
+    max_quantile=0.999
+    max_length = dataset['sequence_length_template'].quantile(max_quantile)
+    trimmed = dataset.query("sequence_length_template < %s" % max_length)['sequence_length_template']
+    sns.distplot(trimmed,
                  hist=True, kde=True, ax=ax)
 
     # Despine left axis
@@ -452,8 +455,14 @@ def plot_quality_per_speed(dataset, name, plots_dir):
 def plot_quality_per_readlength(dataset, name, plots_dir):
     # Seaborn nomenclature for joint plots are a little different
     sns.set_style("dark")
+
+    # Trim the readset first
+    max_quantile = 0.99
+    max_read = dataset['sequence_length_template'].quantile(max_quantile)
+    trimmed_set = dataset.query("sequence_length_template < %d" % max_read)
+
     g = sns.jointplot(x='sequence_length_template', y='mean_qscore_template',
-                      data=dataset, kind='hex')
+                      data=trimmed_set, kind='hex')
 
     # Add pearson stat
     g.annotate(stats.pearsonr)
@@ -461,9 +470,8 @@ def plot_quality_per_readlength(dataset, name, plots_dir):
     # Set axis labels
     g.set_axis_labels("Sequence length", "Mean Q-score")
 
-    # Set x ticks:
-    for ax in g.ax_joint[0]:
-        ax.xaxis.set_major_formatter(FuncFormatter(x_yield_to_human_readable))
+    # Set x ticks: 
+    g.ax_joint.xaxis.set_major_formatter(FuncFormatter(x_hist_to_human_readable))
 
     # Set title
     g.fig.suptitle("Sequence length against Q-score for %s" % name)
@@ -480,11 +488,18 @@ def plot_quality_per_readlength(dataset, name, plots_dir):
 
 
 def plot_pair_plot(dataset, name, plots_dir):
+    # Globals used
+    max_quantile_events_ratio = 0.95
+    max_quantile_read_length = 0.99
+    sample_size = 10000
+
     # Plot everything side by side.
     sns.set_style("darkgrid")
 
     # Select columns to plot
-    items = ["mean_qscore_template", "pore_speed", "sequence_length_template", "events_ratio"]
+    items = ["mean_qscore_template", "pore_speed",
+             "sequence_length_template", "events_ratio",
+             "qualitative_pass"]
 
     # Changing the axis labels is easier done first.
     rename_columns = {"mean_qscore_template": "Mean QScore Template",
@@ -492,19 +507,33 @@ def plot_pair_plot(dataset, name, plots_dir):
                       "sequence_length_template": "Read Length",
                       "events_ratio": "Events / base"}
 
+    # Get sample
+    sample_set = dataset.filter(items=items).sample(sample_size)
+
+    # Filter out quantiles
+    max_events = sample_set['events_ratio'].quantile(max_quantile_events_ratio)
+    max_read_length = sample_set['sequence_length_template'].quantile(max_quantile_read_length)
+
+    # Trimmed set
+    trimmed_set = sample_set.query("sequence_length_template < %d & events_ratio < %d" % (max_read_length, max_events))
+
     # Plot grid
-    g = sns.PairGrid(dataset.filter(items=items).rename(columns=rename_columns).sample(100000))
+    g = sns.PairGrid(trimmed_set.rename(columns=rename_columns),
+                     hue='qualitative_pass')
 
-    # KDE plots for each series against itself
-    g.map_diag(sns.kdeplot)
+    # Scatter in the top corner
+    g.map_upper(plt.scatter)
 
-    # Density plots against each other
-    g.map_offdiag(sns.kdeplot)
+    # Kde plots in the bottom corner
+    g.map_lower(sns.kdeplot, shade=True, shade_lowest=False)
+
+    # Distribution plots down the middle
+    g.map_diag(sns.distplot)
 
     # Set title
     g.fig.suptitle("Pair plot for %s" % name)
 
-    # Set min axis on pair grid plot
+    # Set FuncFormatter on ax_joint (later).
 
     # Reduce plot to make room for suptitle
     g.fig.subplots_adjust(top=0.95)

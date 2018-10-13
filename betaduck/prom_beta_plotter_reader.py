@@ -71,7 +71,7 @@ def get_fastq_dataframe(fastq_file, is_gzipped=True):
 def read_fastq_datasets(fastq_files, threads):
     # Run in parallel
     datasets = []
-    with concurrent.futures.ThreadPoolExecutor(max_workers=threads) as executor:
+    with concurrent.futures.ProcessPoolExecutor(max_workers=threads) as executor:
         iterator = {executor.submit(get_fastq_dataframe, fastq_file, is_gzipped=True):
                     fastq_file for fastq_file in fastq_files}
         for item in concurrent.futures.as_completed(iterator):
@@ -92,7 +92,7 @@ def read_summary_dataset(sequencing_summary_file):
 def read_summary_datasets(sequencing_summary_files, threads):
     # Run in parallel
     datasets = []
-    with concurrent.futures.ThreadPoolExecutor(max_workers=threads) as executor:
+    with concurrent.futures.ProcessPoolExecutor(max_workers=threads) as executor:
         iterator = {executor.submit(read_summary_dataset, sequencing_summary_file):
                         sequencing_summary_file for sequencing_summary_file in sequencing_summary_files}
         for item in concurrent.futures.as_completed(iterator):
