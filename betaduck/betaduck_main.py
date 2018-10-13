@@ -21,6 +21,8 @@ def run_function(args):
         import betaduck.prom_beta_tar_wrapper as command_to_run
     if args.command == "plot":
         import betaduck.prom_beta_plotter_wrapper as command_to_run
+    else:
+        return
 
     # Now run it!
     command_to_run.main(args)
@@ -55,7 +57,7 @@ def main():
 
     # Tar command
     tar_parser = subparsers.add_parser('tidy',
-                                       help="Use the config file to now tidy up the directories")
+                                       help="Use the config file to now tidy and tar up the directories")
     tar_parser.add_argument("--config", required=True,
                             help="Path to config file")
     tar_parser.add_argument("--keep", default=False, action='store_true',

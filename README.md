@@ -57,7 +57,7 @@ Example:
 `docker run --volume /data:/data alexiswl/betaduck config ..parameters`
 
 
-### betaduck tar 
+### betaduck tidy 
 The work has been done for us in the previous script.
 
 **betaduck tar parameters**
@@ -71,7 +71,7 @@ The work has been done for us in the previous script.
 * --overwrite        
   + Overwrite files if they already exist
 * --threads
-  + Number of folders to tar simultaneously (default=1)
+  + Number of folders to tar and zip simultaneously (default=1)
   
 **docker parameters**  
 Here is where docker shines, it can restrict the cpus and memory utilisations of a given container as to not blow up your system.  
@@ -79,7 +79,7 @@ Having said that, the PromethION beta device is pretty powerful machine. It has 
 Use the `top` and `free` commands to view the current utilisations of your system.  
 The `--cpus` parameter should be 1 higher than the `--threads` parameter used by betaduck.  
 Example:  
-`docker run --memory=50g --cpus=7 --volume=/data:/data alexiswl/betaduck tar ..parameters`
+`docker run --memory=50g --cpus=7 --volume=/data:/data alexiswl/betaduck tidy ..parameters`
 
 
 ## Plotting datasets with betaduck
@@ -88,10 +88,10 @@ Now we get our rewards, some plots produced from the seaborn and matplotlib libr
 **betaduck plot parameters**
 
 * --summary_dir 
-  + Where the tar command placed the summary files.
+  + Where the tidy command placed the summary files.
   + Likely `/data/basecalled/<sample>/<flowcell_port>/sequencing_summary/`
 * --fastq_dir 
-  + Where the tar command placed the fastq files.
+  + Where the tidy command placed the fastq files.
   + Likely `/data/basecalled/<sample>/<flowcell_port>/fastq`
 * --name 
   + Name used in plots
