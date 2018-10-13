@@ -5,6 +5,8 @@ import numpy as np
 import gzip
 from Bio import SeqIO
 import concurrent.futures
+from datetime import timedelta
+
 
 def get_summary_files(summary_dirs):
     summary_files = [os.path.join(summary_dir, summary_file)
@@ -105,9 +107,6 @@ def read_summary_datasets(sequencing_summary_files, threads):
     # Reset the dtypes for the time columns
     dataset = set_summary_time_dtypes(dataset)
 
-    # Get the cumulative channel yield
-    dataset['channel_yield'] = get_channel_yield(dataset)
-
     # Get pass column
     dataset['pass'] = get_pass(dataset)
 
@@ -119,6 +118,24 @@ def read_summary_datasets(sequencing_summary_files, threads):
 
     # Get events ratio
     dataset['events_ratio'] = get_events_ratio(dataset)
+
+    # Add in the start_time_float_by_sample (allows us to later iterate through plots by sample.
+    dataset = convert_sample_time_columns(dataset)
+
+    # Get read_count column
+    dataset['read_count'] = get_read_count(dataset)
+
+    # Get yield column
+    dataset['yield'] = get_yield(dataset)
+
+    # Get the cumulative channel yield
+    dataset['channel_yield'] = get_channel_yield(dataset)
+
+    # Get the cumulative quality yield
+    dataset['quality_yield'] = get_quality_yield(dataset)
+
+    # Get the cumulative  quality count
+    dataset['quality_count'] = get_quality_count(dataset)
 
     # Return the object
     return dataset
@@ -172,7 +189,7 @@ def get_pass(dataset):
 
 def get_qualitative_pass(dataset):
     # Describe the pass (Passed / Failed)
-    return dataset['pass'].apply(lambda x: 'Passed' if x == True else "Failed")
+    return dataset['pass'].apply(lambda x: 'Passed' if x is True else "Failed")
 
 
 def get_duration_ratio(dataset):
@@ -187,3 +204,38 @@ def get_events_ratio(dataset):
     return dataset.apply(
         lambda x: np.nan if x.sequence_length_template == 0 else x.num_events / x.sequence_length_template,
         axis='columns')
+
+
+def convert_sample_time_columns(dataset):
+    # Use the utc in the fastq file to work around restarts
+    min_start_time = dataset['start_time_utc'].min()
+    dataset['start_time_timedelta_by_sample'] = dataset['start_time_utc'].apply(lambda x: x - min_start_time)
+
+    # Convert to float because matplotlib doesn't seem to do timedelta on the x axis well.
+    # Need to divide by another timedelta object in order to get float
+    dataset['start_time_float_by_sample'] = dataset['start_time_timedelta_by_sample'].apply(lambda x:
+                                                                                            x / timedelta(seconds=1))
+
+    # Sort values to start_time_float_by_sample (to assist yield plotting)
+    dataset.sort_values(['start_time_float_by_sample'], inplace=True)
+
+    # Reset index values to match
+    dataset.reset_index(drop=True, inplace=True)
+
+    # Return
+    return dataset
+
+
+def get_quality_yield(dataset):
+    # Get the yield per quality
+    return dataset.groupby(['pass'])['sequence_length_template'].cumsum()
+
+
+def get_quality_count(dataset):
+    # Get the yield per quality
+    return dataset.groupby(['pass']).cumcount() + 1
+
+
+def get_read_count(dataset):
+    # Get the read count dataset
+    return dataset.reset_index()['index'] + 1
