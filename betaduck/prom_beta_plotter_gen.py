@@ -16,9 +16,6 @@ import seaborn as sns
 import logging
 import concurrent.futures
 
-logger = logging.getLogger()
-logger.setLevel(logging.INFO)
-
 
 # Plot yield
 def plot_yield(dataset, name, plots_dir):

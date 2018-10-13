@@ -6,16 +6,17 @@ import pandas as pd
 import logging
 
 from betaduck.prom_beta_plotter_gen import plot_data
-from betaduck.prom_beta_plotter_reader import get_summary_files
-from betaduck.prom_beta_plotter_reader import get_fastq_files
+from betaduck.prom_beta_plotter_reader import get_summary_files, get_fastq_files
+from betaduck.prom_beta_plotter_reader import convert_sample_time_columns
 from betaduck.prom_beta_plotter_reader import read_summary_datasets, read_fastq_datasets
+from betaduck.prom_beta_plotter_reader import get_read_count, get_channel_yield
+from betaduck.prom_beta_plotter_reader import get_quality_yield, get_yield, get_quality_count
 
-logging.basicConfig(level=logging.DEBUG,
+logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
                     datefmt='%m-%d %H:%M')
 
 logger = logging.getLogger()
-logger.setLevel(logging.DEBUG)
 
 """
 Sequencing summary file columns
@@ -77,6 +78,25 @@ def main(args):
     # Merge summary and fastq datasets
     logging.info("Merging datasets")
     dataset = pd.merge(summary_datasets, fastq_datasets, on=['read_id', 'run_id', 'channel'])
+
+    # Add in the start_time_float_by_sample (allows us to later iterate through plots by sample.
+    dataset = convert_sample_time_columns(dataset)
+
+    # Get read_count column
+    dataset['read_count'] = get_read_count(dataset)
+
+    # Get yield column
+    dataset['yield'] = get_yield(dataset)
+
+    # Get the cumulative channel yield
+    dataset['channel_yield'] = get_channel_yield(dataset)
+
+    # Get the cumulative quality yield
+    dataset['quality_yield'] = get_quality_yield(dataset)
+
+    # Get the cumulative  quality count
+    dataset['quality_count'] = get_quality_count(dataset)
+
 
     # Check plots_dir exists
     if not os.path.isdir(args.plots_dir):
