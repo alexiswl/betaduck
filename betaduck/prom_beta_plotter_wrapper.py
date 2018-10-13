@@ -10,6 +10,10 @@ from betaduck.prom_beta_plotter_reader import get_summary_files
 from betaduck.prom_beta_plotter_reader import get_fastq_files
 from betaduck.prom_beta_plotter_reader import read_summary_datasets, read_fastq_datasets
 
+logging.basicConfig(level=logging.DEBUG,
+                    format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
+                    datefmt='%m-%d %H:%M')
+
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
 

@@ -17,7 +17,7 @@ import logging
 import concurrent.futures
 
 logger = logging.getLogger()
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 
 # Plot yield
