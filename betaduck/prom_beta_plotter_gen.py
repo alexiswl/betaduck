@@ -4,19 +4,18 @@ import os
 import numpy as np
 import pandas as pd
 import matplotlib
+
 matplotlib.use('agg')
 from scipy import stats
 import matplotlib.pyplot as plt
 import humanfriendly
 from matplotlib.ticker import FuncFormatter
 from matplotlib.pylab import savefig
-from datetime import timedelta
 
 import seaborn as sns
 import logging
+import concurrent.futures
 
-logger = logging.getLogger()
-logger.setLevel(logging.DEBUG)
 
 # Plot yield
 def plot_yield(dataset, name, plots_dir):
@@ -268,9 +267,10 @@ def plot_read_hist(dataset, name, plots_dir):
     sns.set_style("darkgrid")
 
     # Plot distribution
-    max_quantile=0.999
+    max_quantile = 0.999
     max_length = dataset['sequence_length_template'].quantile(max_quantile)
     trimmed = dataset.query("sequence_length_template < %s" % max_length)['sequence_length_template']
+    sns.distplot(trimmed,
     sns.distplot(trimmed,
                  hist=True, kde=True, ax=ax)
 
@@ -488,11 +488,18 @@ def plot_quality_per_readlength(dataset, name, plots_dir):
 
 
 def plot_pair_plot(dataset, name, plots_dir):
+    # Globals used
+    max_quantile_events_ratio = 0.95
+    max_quantile_read_length = 0.99
+    sample_size = 10000
+
     # Plot everything side by side.
     sns.set_style("darkgrid")
 
     # Select columns to plot
-    items = ["mean_qscore_template", "pore_speed", "sequence_length_template", "events_ratio"]
+    items = ["mean_qscore_template", "pore_speed",
+             "sequence_length_template", "events_ratio",
+             "qualitative_pass"]
 
     # Changing the axis labels is easier done first.
     rename_columns = {"mean_qscore_template": "Mean QScore Template",
@@ -501,11 +508,9 @@ def plot_pair_plot(dataset, name, plots_dir):
                       "events_ratio": "Events / base"}
 
     # Get sample
-    sample_set = dataset.filter(items=items).sample(100000)
+    sample_set = dataset.filter(items=items).sample(sample_size)
 
     # Filter out quantiles
-    max_quantile_events_ratio = 0.95
-    max_quantile_read_length = 0.99
     max_events = sample_set['events_ratio'].quantile(max_quantile_events_ratio)
     max_read_length = sample_set['sequence_length_template'].quantile(max_quantile_read_length)
 
@@ -513,18 +518,25 @@ def plot_pair_plot(dataset, name, plots_dir):
     trimmed_set = sample_set.query("sequence_length_template < %d & events_ratio < %d" % (max_read_length, max_events))
 
     # Plot grid
-    g = sns.PairGrid(trimmed_set.rename(columns=rename_columns))
+    g = sns.PairGrid(trimmed_set.rename(columns=rename_columns),
+                     hue='qualitative_pass', hue_order=["Passed", "Failed"])
 
-    # KDE plots for each series against itself
-    g.map_diag(sns.kdeplot)
+    # Scatter in the top corner
+    g.map_upper(plt.scatter, s=1, alpha=0.5)
 
-    # Density plots against each other
-    g.map_offdiag(sns.kdeplot)
+    # Kde plots in the bottom corner
+    g.map_lower(sns.kdeplot, shade=True, shade_lowest=False)
+
+    # Distribution plots down the middle
+    g.map_diag(sns.distplot, hist_kws={"density": 1})
 
     # Set title
     g.fig.suptitle("Pair plot for %s" % name)
 
-    # Set min axis on pair grid plot
+    # Set FuncFormatter on ax_joint (later).
+
+    # Add the legend to the plot
+    g.add_legend()
 
     # Reduce plot to make room for suptitle
     g.fig.subplots_adjust(top=0.95)
@@ -571,51 +583,6 @@ def plot_pore_speed(dataset, name, plots_dir):
     # Save figure
     savefig(os.path.join(plots_dir, "%s.pore_speed.png" % name))
     plt.close('all')
-
-
-def convert_sample_time_columns(dataset):
-    # Use the utc in the fastq file to work around restarts
-    min_start_time = dataset['start_time_utc'].min()
-    dataset['start_time_timedelta_by_sample'] = dataset['start_time_utc'].apply(lambda x: x - min_start_time)
-
-    # Convert to float because matplotlib doesn't seem to do timedelta on the x axis well.
-    # Need to divide by another timedelta object in order to get float
-    dataset['start_time_float_by_sample'] = dataset['start_time_timedelta_by_sample'].apply(lambda x:
-                                                                                            x / timedelta(seconds=1))
-
-    # Sort values to start_time_float_by_sample (to assist yield plotting)
-    dataset.sort_values(['start_time_float_by_sample'], inplace=True)
-
-    # Reset index values to match
-    dataset.reset_index(drop=True, inplace=True)
-
-    # Return
-    return dataset
-
-
-def get_channel_yield(dataset):
-    # Get the yield per channel
-    return dataset.groupby(['channel'])['sequence_length_template'].cumsum()
-
-
-def get_yield(dataset):
-    # Get the yield dataset
-    return dataset['sequence_length_template'].cumsum()
-
-
-def get_quality_yield(dataset):
-    # Get the yield per quality
-    return dataset.groupby(['pass'])['sequence_length_template'].cumsum()
-
-
-def get_quality_count(dataset):
-    # Get the yield per quality
-    return dataset.groupby(['pass']).cumcount() + 1
-
-
-def get_read_count(dataset):
-    # Get the read count dataset
-    return dataset.reset_index()['index'] + 1
 
 
 def print_stats(dataset, name, plots_dir):
@@ -677,50 +644,20 @@ def print_stats(dataset, name, plots_dir):
         output_handle.write(f"\t{duration:8,.1f} seconds\t|\t{run_duration_h}\n")
 
 
-def plot_data(dataset, name, plots_dir):
-    # Add in the start_time_float_by_sample (allows us to later iterate through plots by sample.
-    logging.info("Adding some additional columns to the dataframe")
-    dataset = convert_sample_time_columns(dataset)
-
-    # Get read_count column
-    dataset['read_count'] = get_read_count(dataset)
-
-    # Get yield column
-    dataset['yield'] = get_yield(dataset)
-
-    # Get the cumulative channel yield
-    dataset['channel_yield'] = get_channel_yield(dataset)
-
-    # Get the cumulative quality yield
-    dataset['quality_yield'] = get_quality_yield(dataset)
-
-    # Get the cumulative  quality count
-    dataset['quality_count'] = get_quality_count(dataset)
-
+def plot_data(dataset, name, plots_dir, threads):
     # Plot things
     # Matplotlib base plots
-    logging.info("Plotting yield and read time graphs")
-    plot_yield(dataset, name, plots_dir)
-    plot_yield_by_quality(dataset, name, plots_dir)
-    plot_reads(dataset, name, plots_dir)
-    plot_read_by_quality(dataset, name, plots_dir)
-    plot_weighted_hist(dataset, name, plots_dir)
+    plotting_functions = [plot_yield, plot_yield_by_quality, plot_reads, plot_read_by_quality,
+                          plot_weighted_hist, plot_read_hist, plot_flowcell, plot_pore_speed,
+                          plot_quality_hist, plot_quality_per_speed, plot_quality_per_readlength,
+                          plot_events_ratio, plot_pair_plot]
 
-    # Seaborn plots
-    plot_read_hist(dataset, name, plots_dir)
-    logging.info("Plotting flowcell")
-    plot_flowcell(dataset, name, plots_dir)
-
-    logging.info("Doing some additional qc plots")
-    plot_pore_speed(dataset, name, plots_dir)
-    plot_quality_hist(dataset, name, plots_dir)
-    plot_quality_per_speed(dataset, name, plots_dir)
-    plot_quality_per_readlength(dataset, name, plots_dir)
-    plot_events_ratio(dataset, name, plots_dir)
-
-    # Final distplot
-    logging.info("Taking a subsample of 100000 points to do the pair plot")
-    plot_pair_plot(dataset, name, plots_dir)
+    # Run in parallel
+    with concurrent.futures.ProcessPoolExecutor(max_workers=threads) as executor:
+        iterator = {executor.submit(plotting_function, dataset, name, plots_dir):
+                        plotting_function for plotting_function in plotting_functions}
+        for item in concurrent.futures.as_completed(iterator):
+            pass  # No need to actually do anything.
 
     # Print out stats
     logging.info("Finishing up and printing out some stats")

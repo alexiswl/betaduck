@@ -159,7 +159,7 @@ def main(args):
     dataset['md5_fast5'] = output_md5sum_fast5
     dataset['md5_fastq'] = output_md5sum_fastq
 
-    # Drop the last row if the run is still goin.
+    # Drop the last row if the run is still going.
     if args.active:
         dataset.drop(dataset.tail(1).index,inplace=True)
 
