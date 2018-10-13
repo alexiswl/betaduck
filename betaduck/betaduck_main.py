@@ -17,7 +17,7 @@ def run_function(args):
     # Which function of the three did we choose?
     if args.command == "config":
         import betaduck.prom_beta_tar_gen_config as command_to_run
-    if args.command == "tar":
+    if args.command == "tidy":
         import betaduck.prom_beta_tar_wrapper as command_to_run
     if args.command == "plot":
         import betaduck.prom_beta_plotter_wrapper as command_to_run
@@ -54,8 +54,8 @@ def main():
     config_parser.set_defaults(func=run_function)
 
     # Tar command
-    tar_parser = subparsers.add_parser('tar',
-                                       help="Use the config file to now tar up the directories")
+    tar_parser = subparsers.add_parser('tidy',
+                                       help="Use the config file to now tidy up the directories")
     tar_parser.add_argument("--config", required=True,
                             help="Path to config file")
     tar_parser.add_argument("--keep", default=False, action='store_true',
