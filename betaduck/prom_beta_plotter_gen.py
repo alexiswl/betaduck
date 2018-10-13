@@ -518,21 +518,24 @@ def plot_pair_plot(dataset, name, plots_dir):
 
     # Plot grid
     g = sns.PairGrid(trimmed_set.rename(columns=rename_columns),
-                     hue='qualitative_pass')
+                     hue='qualitative_pass', hue_order=["Passed", "Failed"])
 
     # Scatter in the top corner
-    g.map_upper(plt.scatter)
+    g.map_upper(plt.scatter, s=1, alpha=0.5)
 
     # Kde plots in the bottom corner
     g.map_lower(sns.kdeplot, shade=True, shade_lowest=False)
 
     # Distribution plots down the middle
-    g.map_diag(sns.distplot)
+    g.map_diag(sns.distplot, hist_kws={"density": 1})
 
     # Set title
     g.fig.suptitle("Pair plot for %s" % name)
 
     # Set FuncFormatter on ax_joint (later).
+
+    # Add the legend to the plot
+    g.add_legend()
 
     # Reduce plot to make room for suptitle
     g.fig.subplots_adjust(top=0.95)
