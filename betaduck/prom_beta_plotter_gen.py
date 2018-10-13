@@ -16,7 +16,7 @@ import seaborn as sns
 import logging
 
 logger = logging.getLogger()
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 # Plot yield
 def plot_yield(dataset, name, plots_dir):

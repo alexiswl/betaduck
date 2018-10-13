@@ -79,7 +79,7 @@ def main():
                                 help="Where do the plots go")
     plotter_parser.add_argument("--name", type=str, required=True,
                                 help="Titles for plots")
-    plotter_parser.add_argument("--threads", type=str, required=True,
+    plotter_parser.add_argument("--threads", type=int, default=1,
                                 help="Read the dataframes in parallel")
     plotter_parser.set_defaults(func=run_function)
 
