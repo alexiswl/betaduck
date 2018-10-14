@@ -651,6 +651,9 @@ def plot_data(dataset, name, plots_dir, threads):
                           plot_quality_hist, plot_quality_per_speed, plot_quality_per_readlength,
                           plot_events_ratio, plot_pair_plot]
 
+    # Set threads to one for plotting
+    threads = 1
+
     # Run in parallel
     with concurrent.futures.ProcessPoolExecutor(max_workers=threads) as executor:
         iterator = {executor.submit(plotting_function, dataset, name, plots_dir):
