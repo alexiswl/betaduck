@@ -643,7 +643,7 @@ def print_stats(dataset, name, plots_dir):
         output_handle.write(f"\t{duration:8,.1f} seconds\t|\t{run_duration_h}\n")
 
 
-def plot_data(dataset, name, plots_dir, threads):
+def plot_data(dataset, name, plots_dir):
     # Plot things
     # Matplotlib base plots
     plotting_functions = [plot_yield, plot_yield_by_quality, plot_reads, plot_read_by_quality,
@@ -651,15 +651,9 @@ def plot_data(dataset, name, plots_dir, threads):
                           plot_quality_hist, plot_quality_per_speed, plot_quality_per_readlength,
                           plot_events_ratio, plot_pair_plot]
 
-    # Set threads to one for plotting
-    threads = 1
-
-    # Run in parallel
-    with concurrent.futures.ProcessPoolExecutor(max_workers=threads) as executor:
-        iterator = {executor.submit(plotting_function, dataset, name, plots_dir):
-                        plotting_function for plotting_function in plotting_functions}
-        for item in concurrent.futures.as_completed(iterator):
-            pass  # No need to actually do anything.
+    # Just iterate through each of the plotting methods.
+    for function in plotting_functions:
+        function(dataset=dataset, name=name, plots_dir=plots_dir)
 
     # Print out stats
     logging.info("Finishing up and printing out some stats")
