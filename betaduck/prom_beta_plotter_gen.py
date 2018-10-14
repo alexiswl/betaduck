@@ -269,8 +269,7 @@ def plot_read_hist(dataset, name, plots_dir):
     # Plot distribution
     max_quantile = 0.999
     max_length = dataset['sequence_length_template'].quantile(max_quantile)
-    trimmed = dataset.query("sequence_length_template < %s" % max_length)['sequence_length_template']
-    sns.distplot(trimmed,
+    trimmed = dataset.query("sequence_length_template < %s" % max_length)['sequence_length_template'] 
     sns.distplot(trimmed,
                  hist=True, kde=True, ax=ax)
 
@@ -518,25 +517,21 @@ def plot_pair_plot(dataset, name, plots_dir):
     trimmed_set = sample_set.query("sequence_length_template < %d & events_ratio < %d" % (max_read_length, max_events))
 
     # Plot grid
-    g = sns.PairGrid(trimmed_set.rename(columns=rename_columns),
-                     hue='qualitative_pass', hue_order=["Passed", "Failed"])
+    g = sns.PairGrid(trimmed_set.rename(columns=rename_columns))
 
     # Scatter in the top corner
-    g.map_upper(plt.scatter, s=1, alpha=0.5)
+    g.map_upper(plt.scatter, s=1, alpha=0.5)# hue='qualitative_pass', hue_order=["Passed", "Failed"])
 
     # Kde plots in the bottom corner
     g.map_lower(sns.kdeplot, shade=True, shade_lowest=False)
 
     # Distribution plots down the middle
-    g.map_diag(sns.distplot, hist_kws={"density": 1})
+    g.map_diag(plt.hist, weights=trimmed_set['sequence_length_template'])
 
     # Set title
     g.fig.suptitle("Pair plot for %s" % name)
 
     # Set FuncFormatter on ax_joint (later).
-
-    # Add the legend to the plot
-    g.add_legend()
 
     # Reduce plot to make room for suptitle
     g.fig.subplots_adjust(top=0.95)
