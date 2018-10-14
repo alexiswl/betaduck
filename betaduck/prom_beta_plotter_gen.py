@@ -269,8 +269,7 @@ def plot_read_hist(dataset, name, plots_dir):
     # Plot distribution
     max_quantile = 0.999
     max_length = dataset['sequence_length_template'].quantile(max_quantile)
-    trimmed = dataset.query("sequence_length_template < %s" % max_length)['sequence_length_template']
-    sns.distplot(trimmed,
+    trimmed = dataset.query("sequence_length_template < %s" % max_length)['sequence_length_template'] 
     sns.distplot(trimmed,
                  hist=True, kde=True, ax=ax)
 
@@ -518,25 +517,25 @@ def plot_pair_plot(dataset, name, plots_dir):
     trimmed_set = sample_set.query("sequence_length_template < %d & events_ratio < %d" % (max_read_length, max_events))
 
     # Plot grid
-    g = sns.PairGrid(trimmed_set.rename(columns=rename_columns),
-                     hue='qualitative_pass', hue_order=["Passed", "Failed"])
+    g = sns.PairGrid(trimmed_set.rename(columns=rename_columns))
 
     # Scatter in the top corner
-    g.map_upper(plt.scatter, s=1, alpha=0.5)
+    g.map_upper(plt.scatter, s=1, alpha=0.5)# hue='qualitative_pass', hue_order=["Passed", "Failed"])
 
     # Kde plots in the bottom corner
     g.map_lower(sns.kdeplot, shade=True, shade_lowest=False)
 
     # Distribution plots down the middle
-    g.map_diag(sns.distplot, hist_kws={"density": 1})
+    g.map_diag(plt.hist, weights=trimmed_set['sequence_length_template'])
+
+    # Use the funcformmatter for the Read Lengths (3rd row and column (so 2 on a 0 indexed array))
+    g.axes[2, 2].xaxis.set_major_formatter(FuncFormatter(y_yield_to_human_readable))
+    g.axes[2, 2].yaxis.set_major_formatter(FuncFormatter(y_yield_to_human_readable))
 
     # Set title
     g.fig.suptitle("Pair plot for %s" % name)
 
     # Set FuncFormatter on ax_joint (later).
-
-    # Add the legend to the plot
-    g.add_legend()
 
     # Reduce plot to make room for suptitle
     g.fig.subplots_adjust(top=0.95)
@@ -644,7 +643,7 @@ def print_stats(dataset, name, plots_dir):
         output_handle.write(f"\t{duration:8,.1f} seconds\t|\t{run_duration_h}\n")
 
 
-def plot_data(dataset, name, plots_dir, threads):
+def plot_data(dataset, name, plots_dir):
     # Plot things
     # Matplotlib base plots
     plotting_functions = [plot_yield, plot_yield_by_quality, plot_reads, plot_read_by_quality,
@@ -652,12 +651,9 @@ def plot_data(dataset, name, plots_dir, threads):
                           plot_quality_hist, plot_quality_per_speed, plot_quality_per_readlength,
                           plot_events_ratio, plot_pair_plot]
 
-    # Run in parallel
-    with concurrent.futures.ProcessPoolExecutor(max_workers=threads) as executor:
-        iterator = {executor.submit(plotting_function, dataset, name, plots_dir):
-                        plotting_function for plotting_function in plotting_functions}
-        for item in concurrent.futures.as_completed(iterator):
-            pass  # No need to actually do anything.
+    # Just iterate through each of the plotting methods.
+    for function in plotting_functions:
+        function(dataset=dataset, name=name, plots_dir=plots_dir)
 
     # Print out stats
     logging.info("Finishing up and printing out some stats")
