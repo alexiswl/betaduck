@@ -528,6 +528,10 @@ def plot_pair_plot(dataset, name, plots_dir):
     # Distribution plots down the middle
     g.map_diag(plt.hist, weights=trimmed_set['sequence_length_template'])
 
+    # Use the funcformmatter for the Read Lengths (3rd row and column (so 2 on a 0 indexed array))
+    g.axes[2, 2].xaxis.set_major_formatter(FuncFormatter(y_yield_to_human_readable))
+    g.axes[2, 2].yaxis.set_major_formatter(FuncFormatter(y_yield_to_human_readable))
+
     # Set title
     g.fig.suptitle("Pair plot for %s" % name)
 
