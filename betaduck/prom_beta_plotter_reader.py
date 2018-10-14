@@ -7,6 +7,7 @@ from Bio import SeqIO
 import concurrent.futures
 from datetime import timedelta
 
+import logging
 
 def get_summary_files(summary_dirs):
     summary_files = [os.path.join(summary_dir, summary_file)
@@ -189,6 +190,8 @@ def get_events_ratio(dataset):
 
 
 def trim_dataset(dataset):
+    logging.info("Trimming dataset to make plots nice")
+    logging.info("Starting with %d reads" % dataset.shape[0])
     # Restrict extremely long reads
     read_length_max_quantile = 0.995
     read_length_query = "sequence_length_template < %d" % dataset['sequence_length_template'].quantile(
@@ -203,8 +206,10 @@ def trim_dataset(dataset):
         time_min_quantile)
     time_max_query = "start_time_float_by_sample < %d" % dataset['start_time_float_by_sample'].quantile(
         time_max_quantile)
+    dataset = dataset.query(' & '.join([read_length_query, events_ratio_query, time_min_query, time_max_query]))
+    logging.info("Finished trimming with %d reads" % dataset.shape[0])
 
-    return dataset.query(' & '.join([read_length_query, events_ratio_query, time_min_query, time_max_query]))
+    return dataset
 
 
 def convert_sample_time_columns(dataset):

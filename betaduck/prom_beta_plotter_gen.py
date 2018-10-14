@@ -630,5 +630,4 @@ def plot_data(dataset, name, plots_dir):
         function(dataset=dataset, name=name, plots_dir=plots_dir)
 
     # Print out stats
-    logging.info("Finishing up and printing out some stats")
-    print_stats(dataset, name, plots_dir)
+    logging.info("Finishing plotting")

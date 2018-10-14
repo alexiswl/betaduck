@@ -5,7 +5,7 @@ import os
 import pandas as pd
 import logging
 
-from betaduck.prom_beta_plotter_gen import plot_data
+from betaduck.prom_beta_plotter_gen import plot_data, print_stats
 from betaduck.prom_beta_plotter_reader import get_summary_files, get_fastq_files
 from betaduck.prom_beta_plotter_reader import convert_sample_time_columns, trim_dataset
 from betaduck.prom_beta_plotter_reader import read_summary_datasets, read_fastq_datasets
@@ -82,8 +82,13 @@ def main(args):
     # Add in the start_time_float_by_sample (allows us to later iterate through plots by sample.
     dataset = convert_sample_time_columns(dataset)
 
+    # Print the non-trimmed stats before proceeding
+    print_stats(dataset, args.name+".untrimmed", args.plots_dir)
+
     # Trim the dataset
     dataset = trim_dataset(dataset)
+
+    print_stats(dataset, args.name+".trimmed", args.plots_dir)
 
     # Reset the index
     dataset.reset_index(drop=True, inplace=True)
