@@ -104,7 +104,7 @@ def main(args):
 
     # Plot yields and histograms
     logging.info("Generating plots")
-    plot_data(dataset, args.name, args.plots_dir, args.threads)
+    plot_data(dataset, args.name, args.plots_dir)
 
 
 if __name__ == "__main__":
