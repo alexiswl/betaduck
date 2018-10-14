@@ -216,28 +216,26 @@ def plot_flowcell(dataset, name, plots_dir):
 def plot_weighted_hist(dataset, name, plots_dir):
     # Set globals
     num_bins = 50
-    max_quantile = 0.999
 
     # Open up plotting frame
     fig, ax = plt.subplots(1)
 
     # Get linspacing of histogram
-    max_length = dataset['sequence_length_template'].quantile(max_quantile)
-    trimmed = dataset.query("sequence_length_template < %s" % max_length)['sequence_length_template']
+    bins = np.linspace(start=0, stop=dataset['sequence_length_template'].max(), num=num_bins)
 
-    # Develop the linspace
-    bins = np.linspace(start=0, stop=trimmed.max(), num=num_bins)
+    # Develop the bin width
     bin_width = bins[1] - bins[0]
 
     # Plot weighted histogram
-    trimmed.plot(kind="hist", ax=ax, density=1, bins=bins, alpha=0.6, weights=trimmed)
+    dataset['sequence_length_template'].plot(kind="hist", ax=ax, density=1, bins=bins,
+                                             alpha=0.6, weights=dataset['sequence_length_template'])
 
     # Set the axis formatters
     def y_hist_to_human_readable_seq(y, position):
         # Convert distribution to base pairs
         if y == 0:
             return 0
-        s = humanfriendly.format_size(bin_width * trimmed.sum() * y, binary=False)
+        s = humanfriendly.format_size(bin_width * dataset['sequence_length_template'].sum() * y, binary=False)
         return reformat_human_friendly(s)
 
     ax.yaxis.set_major_formatter(FuncFormatter(y_hist_to_human_readable_seq))
@@ -267,10 +265,7 @@ def plot_read_hist(dataset, name, plots_dir):
     sns.set_style("darkgrid")
 
     # Plot distribution
-    max_quantile = 0.999
-    max_length = dataset['sequence_length_template'].quantile(max_quantile)
-    trimmed = dataset.query("sequence_length_template < %s" % max_length)['sequence_length_template'] 
-    sns.distplot(trimmed,
+    sns.distplot(dataset['sequence_length_template'],
                  hist=True, kde=True, ax=ax)
 
     # Despine left axis
@@ -377,18 +372,11 @@ def x_hist_to_human_readable(x, position):
 def plot_events_ratio(dataset, name, plots_dir):
     # Seaborn nomenclature for reg/lm plots are a little different
 
-    # Plot setting start_time_float as axis index
-    max_quantile = 0.99
-
-    # Trim the events ratio 
-    max_ratio = dataset['events_ratio'].quantile(max_quantile)
-    trimmed = dataset.query("events_ratio < %s" % max_ratio)
-
     # Set the background style for the plot
     sns.set_style('darkgrid')
 
     # Generate the plot 
-    g = sns.lmplot(x='start_time_float_by_sample', y='events_ratio', data=trimmed,
+    g = sns.lmplot(x='start_time_float_by_sample', y='events_ratio', data=dataset['events_ratio'],
                    hue='qualitative_pass', hue_order=['Passed', 'Failed'],
                    x_estimator=np.mean, truncate=True, x_bins=10, scatter_kws={'alpha': 0.1},
                    legend=False)
@@ -400,7 +388,7 @@ def plot_events_ratio(dataset, name, plots_dir):
         lh.set_alpha(1)
 
     # Zero base y-axis
-    y_max = trimmed['events_ratio'].mean() * 2
+    y_max = dataset['events_ratio'].mean() * 2
     g.set(ylim=(0, y_max))
 
     # Set x and y labels
@@ -455,13 +443,8 @@ def plot_quality_per_readlength(dataset, name, plots_dir):
     # Seaborn nomenclature for joint plots are a little different
     sns.set_style("dark")
 
-    # Trim the readset first
-    max_quantile = 0.99
-    max_read = dataset['sequence_length_template'].quantile(max_quantile)
-    trimmed_set = dataset.query("sequence_length_template < %d" % max_read)
-
     g = sns.jointplot(x='sequence_length_template', y='mean_qscore_template',
-                      data=trimmed_set, kind='hex')
+                      data=dataset['sequence_length_template'], kind='hex')
 
     # Add pearson stat
     g.annotate(stats.pearsonr)
@@ -488,8 +471,6 @@ def plot_quality_per_readlength(dataset, name, plots_dir):
 
 def plot_pair_plot(dataset, name, plots_dir):
     # Globals used
-    max_quantile_events_ratio = 0.95
-    max_quantile_read_length = 0.99
     sample_size = 10000
 
     # Plot everything side by side.
@@ -509,15 +490,8 @@ def plot_pair_plot(dataset, name, plots_dir):
     # Get sample
     sample_set = dataset.filter(items=items).sample(sample_size)
 
-    # Filter out quantiles
-    max_events = sample_set['events_ratio'].quantile(max_quantile_events_ratio)
-    max_read_length = sample_set['sequence_length_template'].quantile(max_quantile_read_length)
-
-    # Trimmed set
-    trimmed_set = sample_set.query("sequence_length_template < %d & events_ratio < %d" % (max_read_length, max_events))
-
     # Plot grid
-    g = sns.PairGrid(trimmed_set.rename(columns=rename_columns))
+    g = sns.PairGrid(sample_set.rename(columns=rename_columns))
 
     # Scatter in the top corner
     g.map_upper(plt.scatter, s=1, alpha=0.5)# hue='qualitative_pass', hue_order=["Passed", "Failed"])
@@ -526,7 +500,7 @@ def plot_pair_plot(dataset, name, plots_dir):
     g.map_lower(sns.kdeplot, shade=True, shade_lowest=False)
 
     # Distribution plots down the middle
-    g.map_diag(plt.hist, weights=trimmed_set['sequence_length_template'])
+    g.map_diag(plt.hist, weights=sample_set['sequence_length_template'])
 
     # Use the funcformmatter for the Read Lengths (3rd row and column (so 2 on a 0 indexed array))
     g.axes[2, 2].xaxis.set_major_formatter(FuncFormatter(y_yield_to_human_readable))

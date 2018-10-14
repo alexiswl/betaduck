@@ -7,7 +7,7 @@ import logging
 
 from betaduck.prom_beta_plotter_gen import plot_data
 from betaduck.prom_beta_plotter_reader import get_summary_files, get_fastq_files
-from betaduck.prom_beta_plotter_reader import convert_sample_time_columns
+from betaduck.prom_beta_plotter_reader import convert_sample_time_columns, trim_dataset
 from betaduck.prom_beta_plotter_reader import read_summary_datasets, read_fastq_datasets
 from betaduck.prom_beta_plotter_reader import get_read_count, get_channel_yield
 from betaduck.prom_beta_plotter_reader import get_quality_yield, get_yield, get_quality_count
@@ -82,6 +82,12 @@ def main(args):
     # Add in the start_time_float_by_sample (allows us to later iterate through plots by sample.
     dataset = convert_sample_time_columns(dataset)
 
+    # Trim the dataset
+    dataset = trim_dataset(dataset)
+
+    # Reset the index
+    dataset.reset_index(drop=True, inplace=True)
+
     # Get read_count column
     dataset['read_count'] = get_read_count(dataset)
 
@@ -96,7 +102,6 @@ def main(args):
 
     # Get the cumulative  quality count
     dataset['quality_count'] = get_quality_count(dataset)
-
 
     # Check plots_dir exists
     if not os.path.isdir(args.plots_dir):

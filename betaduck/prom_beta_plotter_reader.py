@@ -188,6 +188,25 @@ def get_events_ratio(dataset):
         axis='columns')
 
 
+def trim_dataset(dataset):
+    # Restrict extremely long reads
+    read_length_max_quantile = 0.995
+    read_length_query = "sequence_length_template < %d" % dataset['sequence_length_template'].quantile(
+        read_length_max_quantile)
+    # Events thresold (there's some extreme fail reads up there)
+    events_ratio_threshold = 10
+    events_ratio_query = "events_ratio < %d" % events_ratio_threshold
+    # Some of the times of the fastq are a little whacked.
+    time_min_quantile = 0.001
+    time_max_quantile = 0.999
+    time_min_query = "start_time_float_by_sample > %d" % dataset['start_time_float_by_sample'].quantile(
+        time_min_quantile)
+    time_max_query = "start_time_float_by_sample < %d" % dataset['start_time_float_by_sample'].quantile(
+        time_max_quantile)
+
+    return dataset.query(' & '.join([read_length_query, events_ratio_query, time_min_query, time_max_query]))
+
+
 def convert_sample_time_columns(dataset):
     # Use the utc in the fastq file to work around restarts
     min_start_time = dataset['start_time_utc'].min()
