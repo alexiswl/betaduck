@@ -107,9 +107,18 @@ def zip_and_move_fastq_file(fastq_path, output_path, overwrite=False, inplace=Fa
         if os.path.isfile(output_path) and not overwrite:
             logging.info("Fastq file %s already exists in destination and overwrite not set. "
                          "Skipping" % output_path)
+
+        # Zip file to .tmp file and then move to .gz
+        tmp_output_path = output_path + ".tmp"
+
         # Zip and move the summary file
-        with open(fastq_path, 'rb') as f_in, gzip.open(output_path, 'wb') as f_out:
+        with open(fastq_path, 'rb') as f_in, gzip.open(tmp_output_path, 'wb') as f_out:
             shutil.copyfileobj(f_in, f_out)
+
+        # Now move to final dest, wait for filesystem to catch up first
+        time.sleep(1)
+        shutil.move(tmp_output_path, output_path)
+
         if inplace:
             # Wait for file system to catch up then remove
             time.sleep(1)
@@ -152,21 +161,31 @@ def tar_up_folder(fast5_path, output_path, overwrite=False, inplace=False, dry_r
         logging.info("Starting tarring %s into %s" % (fast5_path, output_path))
         logging.info("%d files to tar" % len(fast5_files))
 
+        # Create a .tmp file s.t rsyncs running don't try to remove a file being generated.
+        tmp_output_path = output_path + ".tmp"
+
         # Open up the output_path file
-        archive = tarfile.open(output_path, file_handler_setting)
+        archive = tarfile.open(tmp_output_path, file_handler_setting)
         # Add each of the fast5 files to the archive
         for fast5_file in fast5_files:
             input_file = os.path.join(fast5_path, fast5_file)
             output_file = os.path.join(os.path.basename(fast5_path), fast5_file)
             # Add file to archive
             archive.add(input_file, arcname=output_file)
+        # Close the archive
+        archive.close()
+
+        # wait for file system to catch up before moving the file to the proper destination
+        time.sleep(3)
+
+        # Move file to proper destination
+        shutil.move(tmp_output_path, output_path)
+
         # If inplace also remove the input file from the system
         if inplace:
             time.sleep(3)
             # Remove folder from filesystem
             shutil.rmtree(fast5_path)
-        # Close the archive
-        archive.close()
 
         # Log the time taken to write the archive file
         end_time = datetime.now()
