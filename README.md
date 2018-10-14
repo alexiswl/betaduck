@@ -6,6 +6,7 @@ For data-handling on the PromethION beta device.
 * Gzip fastq files and move to folder 'fastq'
 * Move sequencing summary files to folder 'sequencing_summary'
 
+![flowchart](images/tidying_flowchart.png)
 
 * Plot datasets using the fastq and sequencing summary files.
 
@@ -102,4 +103,5 @@ Now we get our rewards, some plots produced from the seaborn and matplotlib libr
   + Likely `/data/basecalled/<sample>/<flowcell_port>/plots`
 * --threads
   + Number of threads to use when reading in fastq and summary datasets.
+  + Number of threads used when generating the plots has been restricted to 1.
 
