@@ -5,6 +5,8 @@ import numpy as np
 import gzip
 from Bio import SeqIO
 import concurrent.futures
+from datetime import timedelta
+
 
 def get_summary_files(summary_dirs):
     summary_files = [os.path.join(summary_dir, summary_file)
@@ -71,7 +73,7 @@ def get_fastq_dataframe(fastq_file, is_gzipped=True):
 def read_fastq_datasets(fastq_files, threads):
     # Run in parallel
     datasets = []
-    with concurrent.futures.ThreadPoolExecutor(max_workers=threads) as executor:
+    with concurrent.futures.ProcessPoolExecutor(max_workers=threads) as executor:
         iterator = {executor.submit(get_fastq_dataframe, fastq_file, is_gzipped=True):
                     fastq_file for fastq_file in fastq_files}
         for item in concurrent.futures.as_completed(iterator):
@@ -92,7 +94,7 @@ def read_summary_dataset(sequencing_summary_file):
 def read_summary_datasets(sequencing_summary_files, threads):
     # Run in parallel
     datasets = []
-    with concurrent.futures.ThreadPoolExecutor(max_workers=threads) as executor:
+    with concurrent.futures.ProcessPoolExecutor(max_workers=threads) as executor:
         iterator = {executor.submit(read_summary_dataset, sequencing_summary_file):
                         sequencing_summary_file for sequencing_summary_file in sequencing_summary_files}
         for item in concurrent.futures.as_completed(iterator):
@@ -104,9 +106,6 @@ def read_summary_datasets(sequencing_summary_files, threads):
 
     # Reset the dtypes for the time columns
     dataset = set_summary_time_dtypes(dataset)
-
-    # Get the cumulative channel yield
-    dataset['channel_yield'] = get_channel_yield(dataset)
 
     # Get pass column
     dataset['pass'] = get_pass(dataset)
@@ -172,7 +171,7 @@ def get_pass(dataset):
 
 def get_qualitative_pass(dataset):
     # Describe the pass (Passed / Failed)
-    return dataset['pass'].apply(lambda x: 'Passed' if x == True else "Failed")
+    return dataset['pass'].apply(lambda x: 'Passed' if x is True else "Failed")
 
 
 def get_duration_ratio(dataset):
@@ -187,3 +186,38 @@ def get_events_ratio(dataset):
     return dataset.apply(
         lambda x: np.nan if x.sequence_length_template == 0 else x.num_events / x.sequence_length_template,
         axis='columns')
+
+
+def convert_sample_time_columns(dataset):
+    # Use the utc in the fastq file to work around restarts
+    min_start_time = dataset['start_time_utc'].min()
+    dataset['start_time_timedelta_by_sample'] = dataset['start_time_utc'].apply(lambda x: x - min_start_time)
+
+    # Convert to float because matplotlib doesn't seem to do timedelta on the x axis well.
+    # Need to divide by another timedelta object in order to get float
+    dataset['start_time_float_by_sample'] = dataset['start_time_timedelta_by_sample'].apply(lambda x:
+                                                                                            x / timedelta(seconds=1))
+
+    # Sort values to start_time_float_by_sample (to assist yield plotting)
+    dataset.sort_values(['start_time_float_by_sample'], inplace=True)
+
+    # Reset index values to match
+    dataset.reset_index(drop=True, inplace=True)
+
+    # Return
+    return dataset
+
+
+def get_quality_yield(dataset):
+    # Get the yield per quality
+    return dataset.groupby(['pass'])['sequence_length_template'].cumsum()
+
+
+def get_quality_count(dataset):
+    # Get the yield per quality
+    return dataset.groupby(['pass']).cumcount() + 1
+
+
+def get_read_count(dataset):
+    # Get the read count dataset
+    return dataset.reset_index()['index'] + 1
