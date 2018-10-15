@@ -376,7 +376,7 @@ def plot_events_ratio(dataset, name, plots_dir):
     sns.set_style('darkgrid')
 
     # Generate the plot 
-    g = sns.lmplot(x='start_time_float_by_sample', y='events_ratio', data=dataset['events_ratio'],
+    g = sns.lmplot(x='start_time_float_by_sample', y='events_ratio', data=dataset,
                    hue='qualitative_pass', hue_order=['Passed', 'Failed'],
                    x_estimator=np.mean, truncate=True, x_bins=10, scatter_kws={'alpha': 0.1},
                    legend=False)
