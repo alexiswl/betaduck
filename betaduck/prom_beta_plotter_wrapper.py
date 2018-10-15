@@ -79,6 +79,10 @@ def main(args):
     logging.info("Merging datasets")
     dataset = pd.merge(summary_datasets, fastq_datasets, on=['read_id', 'run_id', 'channel'])
 
+    # Drop summary and fastq datasets which will lower the memory requirements of the system.
+    del summary_datasets
+    del fastq_datasets
+
     # Add in the start_time_float_by_sample (allows us to later iterate through plots by sample.
     dataset = convert_sample_time_columns(dataset)
 
