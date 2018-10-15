@@ -11,7 +11,8 @@ For data-handling on the PromethION beta device.
 ![flowchart](images/tidying_flowchart.png)
 
 ### Plotting your sequencing data
-* Plot datasets using the fastq and sequencing summary files. And provide a stats report. Examples of some  plots produced are shown below.
+* Plot datasets using the fastq and sequencing summary files. And provide a stats report. 
+* Examples of some  plots produced are shown below.
   + Yield produced over time
 ![yield_plot](images/example.yield.png)
   + Histogram of read-length distribution
