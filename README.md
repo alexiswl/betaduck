@@ -8,7 +8,17 @@ For data-handling on the PromethION beta device.
 
 ![flowchart](images/tidying_flowchart.png)
 
-* Plot datasets using the fastq and sequencing summary files.
+* Plot datasets using the fastq and sequencing summary files. And provide a stats report. Examples of some  plots produced are shown below.
+  + Yield produced over time
+![yield_plot](images/example.yield.png)
+  + Histogram of read-length distribution
+![hist_plot](images/example.weighted.hist.png)
+  + Show the distribution in average read quality
+![dist_plot](images/example.quality.hist.png)
+  + Pair plot, showing the correlation between four variables provided for each read
+![pair_plot](images/example.pair_plot.png)
+  + Yield per channel as provided in the flowcell map.
+![flowcell_map](images/example.flowcellmap.png)
 
 ## Installation through Docker.
 
@@ -105,3 +115,9 @@ Now we get our rewards, some plots produced from the seaborn and matplotlib libr
   + Number of threads to use when reading in fastq and summary datasets.
   + Number of threads used when generating the plots has been restricted to 1.
 
+
+## Troubleshooting
+* Info logs display in UTC time
+  + Docker containers use the time of the container, not that of the outside.
+  + You can fix this by mounting the /etc/localtime into the container
+  + `docker run --volume /data:/data --volume /etc/localtime:/etc/localtime alexiswl/betaduck ..parameters`

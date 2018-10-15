@@ -3,11 +3,12 @@
 import argparse
 import os
 import pandas as pd
+import dask.dataframe as dd
 import logging
 
-from betaduck.prom_beta_plotter_gen import plot_data
+from betaduck.prom_beta_plotter_gen import plot_data, print_stats
 from betaduck.prom_beta_plotter_reader import get_summary_files, get_fastq_files
-from betaduck.prom_beta_plotter_reader import convert_sample_time_columns
+from betaduck.prom_beta_plotter_reader import convert_sample_time_columns, trim_dataset
 from betaduck.prom_beta_plotter_reader import read_summary_datasets, read_fastq_datasets
 from betaduck.prom_beta_plotter_reader import get_read_count, get_channel_yield
 from betaduck.prom_beta_plotter_reader import get_quality_yield, get_yield, get_quality_count
@@ -55,6 +56,10 @@ def main(args):
     for arg, value in sorted(vars(args).items()):
         logger.info("Argument %s: %r", arg, value)
 
+    # Check plots_dir exists
+    if not os.path.isdir(args.plots_dir):
+        os.mkdir(args.plots_dir)
+
     # Get summary files
     summary_files = get_summary_files([summary_dir
                                        for summary_dir in args.summary_dir.split(",")])
@@ -77,9 +82,26 @@ def main(args):
 
     # Merge summary and fastq datasets
     logging.info("Merging datasets")
-    dataset = pd.merge(summary_datasets, fastq_datasets, on=['read_id', 'run_id', 'channel'])
+
+    dataset = dd.merge(summary_datasets, fastq_datasets, on=['read_id', 'run_id', 'channel'])
+
+    # Drop summary and fastq datasets which will lower the memory requirements of the system.
+    del summary_datasets
+    del fastq_datasets
 
     # Add in the start_time_float_by_sample (allows us to later iterate through plots by sample.
+    dataset = convert_sample_time_columns(dataset)
+
+    # Print the non-trimmed stats before proceeding
+    print_stats(dataset, args.name+".unfiltered", args.plots_dir)
+
+    # Trim the dataset
+    dataset = trim_dataset(dataset)
+
+    # Reprint the filtered stats
+    print_stats(dataset, args.name+".filtered", args.plots_dir)
+
+    # Re-grab the fastq times
     dataset = convert_sample_time_columns(dataset)
 
     # Get read_count column
@@ -96,11 +118,6 @@ def main(args):
 
     # Get the cumulative  quality count
     dataset['quality_count'] = get_quality_count(dataset)
-
-
-    # Check plots_dir exists
-    if not os.path.isdir(args.plots_dir):
-        os.mkdir(args.plots_dir)
 
     # Plot yields and histograms
     logging.info("Generating plots")
