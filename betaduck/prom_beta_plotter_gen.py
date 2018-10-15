@@ -14,7 +14,6 @@ from matplotlib.pylab import savefig
 
 import seaborn as sns
 import logging
-import concurrent.futures
 
 
 # Plot yield
@@ -257,7 +256,10 @@ def plot_weighted_hist(dataset, name, plots_dir):
 
 def plot_read_hist(dataset, name, plots_dir):
     # Much simpler histogram with seaborn
-
+    # Set max quantile, we need to reduce this for the read length histogram as it's not weighter
+    max_quantile = 0.99
+    max_read_length = dataset['sequence_length_template'].quantile(max_quantile)
+    trimmed = dataset.query('sequence_length_template < %d' % max_read_length)
     # Open up a plotting frame
     fig, ax = plt.subplots(1)
 
@@ -265,7 +267,7 @@ def plot_read_hist(dataset, name, plots_dir):
     sns.set_style("darkgrid")
 
     # Plot distribution
-    sns.distplot(dataset['sequence_length_template'],
+    sns.distplot(trimmed['sequence_length_template'],
                  hist=True, kde=True, ax=ax)
 
     # Despine left axis
