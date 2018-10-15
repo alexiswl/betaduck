@@ -193,7 +193,7 @@ def trim_dataset(dataset):
     logging.info("Trimming dataset to make plots nice")
     logging.info("Starting with %d reads" % dataset.shape[0])
     # Restrict extremely long reads
-    read_length_max_quantile = 0.995
+    read_length_max_quantile = 0.999
     read_length_query = "sequence_length_template < %d" % dataset['sequence_length_template'].quantile(
         read_length_max_quantile)
     # Events thresold (there's some extreme fail reads up there)
