@@ -4,7 +4,7 @@ For data-handling on the PromethION beta device.
 ## Uses
 
 ### Tidying your data
-* Bundle fast5 folds into gzipped tar files
+* Bundle fast5 folds into gzipped tar files (much easier to then rsync via ssh or mount - see the commands below)
 * Gzip fastq files and move to folder 'fastq'
 * Move sequencing summary files to folder 'sequencing_summary'
 
@@ -122,6 +122,24 @@ Now we get our rewards, some plots produced from the seaborn and matplotlib libr
   + Number of threads to use when reading in fastq and summary datasets.
   + Number of threads used when generating the plots has been restricted to 1.
 
+## Rsyncing to a directory
+Now that your nanopore data is tidy, you can rsync the data across using rsync.
+You will need to specify which files to include and exclude in the rsync comamnd.
+```
+rsync --archive ' \ # Archive allows rsync to find files recursively
+--include='*/' \ # Look for the following file endinds in subfolders
+--include='*.fast5.tar.gz' \ # Find all the fast5 tars
+--include='*.fastq.gz' \ # Find all the gzipped fastq files
+--include='*.sequencing_summary.txt' \ # Find all the moved sequencing summary files
+--include='*.png' \ # Carry over any plots that have been generated
+--exclude='*' \ # Exclude all other files
+--prune-empty-dirs \ # Don't download folders that won't have files in them
+/path/to/data/basecalled/reads
+/dest/directory
+```
+
+### Additional options to rsync
+`--remove-source-files` if you wish to remove the data from the PromethION device.
 
 ## Troubleshooting
 * Info logs display in UTC time
