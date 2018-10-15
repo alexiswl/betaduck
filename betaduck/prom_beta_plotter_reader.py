@@ -6,6 +6,7 @@ import gzip
 from Bio import SeqIO
 import concurrent.futures
 from datetime import timedelta
+import dask.dataframe as dd
 
 import logging
 
@@ -87,23 +88,12 @@ def read_fastq_datasets(fastq_files, threads):
     return dataset
 
 
-def read_summary_dataset(sequencing_summary_file):
-    # Read in the dataset, used by parallel script below
-    return pd.read_csv(sequencing_summary_file, sep="\t", header=0)
-
-
 def read_summary_datasets(sequencing_summary_files, threads):
-    # Run in parallel
-    datasets = []
-    with concurrent.futures.ProcessPoolExecutor(max_workers=threads) as executor:
-        iterator = {executor.submit(read_summary_dataset, sequencing_summary_file):
-                        sequencing_summary_file for sequencing_summary_file in sequencing_summary_files}
-        for item in concurrent.futures.as_completed(iterator):
-            pandas_input = iterator[item]
-            datasets.append(item.result())
+    # Run in parallel using the dask API
+    dataset = dd.read_csv(sequencing_summary_files, sep="\t", header=0)
 
-    # Merge the list of datasets
-    dataset = merge_summary_dataset(datasets)
+    # Convert to pandas object
+    dataset = dataset.compute()
 
     # Reset the dtypes for the time columns
     dataset = set_summary_time_dtypes(dataset)
@@ -122,14 +112,6 @@ def read_summary_datasets(sequencing_summary_files, threads):
 
     # Return the object
     return dataset
-
-
-def merge_summary_dataset(dataset):
-    """
-    :rtype: pd.DataFrame
-    """
-    # Merge a list of datasets into a single pandas dataframe
-    return pd.concat(dataset, sort=True, ignore_index=True)
 
 
 def set_summary_time_dtypes(dataset):
@@ -190,7 +172,7 @@ def get_events_ratio(dataset):
 
 
 def trim_dataset(dataset):
-    logging.info("Trimming dataset to make plots nice")
+    logging.info("Filtering dataset to make plots nice")
     logging.info("Starting with %d reads" % dataset.shape[0])
     # Restrict extremely long reads
     read_length_max_quantile = 0.999
@@ -207,7 +189,7 @@ def trim_dataset(dataset):
     time_max_query = "start_time_float_by_sample < %d" % dataset['start_time_float_by_sample'].quantile(
         time_max_quantile)
     dataset = dataset.query(' & '.join([read_length_query, events_ratio_query, time_min_query, time_max_query]))
-    logging.info("Finished trimming with %d reads" % dataset.shape[0])
+    logging.info("Finished filtering with %d reads" % dataset.shape[0])
 
     return dataset
 
