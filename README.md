@@ -122,7 +122,7 @@ Now we get our rewards, some plots produced from the seaborn and matplotlib libr
   + Number of threads to use when reading in fastq and summary datasets.
   + Number of threads used when generating the plots has been restricted to 1.
 
-## Rsyncing to a directory
+## Rsyncing to an external location
 Now that your nanopore data is tidy, you can rsync the data across using rsync.
 You will need to specify which files to include and exclude in the rsync comamnd.
 ```
@@ -133,10 +133,13 @@ rsync --archive ' \ # Archive allows rsync to find files recursively
 --include='*.sequencing_summary.txt' \ # Find all the moved sequencing summary files
 --include='*.png' \ # Carry over any plots that have been generated
 --exclude='*' \ # Exclude all other files
---prune-empty-dirs \ # Don't download folders that won't have files in them
+--prune-empty-dirs \ # Don't download folders that won't have files in them (like reads/0 etc)
 /path/to/data/basecalled/reads
 /dest/directory
 ```
+
+This is also acceptable to do whilst the run is still being generated or the betaduck tidy script is running.
+fast5.tar.gz files are written as fast5.tar.gz.tmp initially and then moved so they won't be listed by the rsync if they're still being written to.
 
 ### Additional options to rsync
 `--remove-source-files` if you wish to remove the data from the PromethION device.
