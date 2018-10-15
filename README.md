@@ -8,7 +8,17 @@ For data-handling on the PromethION beta device.
 
 ![flowchart](images/tidying_flowchart.png)
 
-* Plot datasets using the fastq and sequencing summary files.
+* Plot datasets using the fastq and sequencing summary files. And provide a stats report. Examples of some  plots produced are shown below.
+  + Yield produced over time
+![yield_plot](images/example.yield.png)
+  + Histogram of read-length distribution
+![hist_plot](images/example.weighted.hist.png)
+  + Show the distribution in average read quality
+![dist_plot](images/example.quality.hist.png)
+  + Pair plot, showing the correlation between four variables provided for each read
+![pair_plot](images/example.pair_plot.png)
+  + Yield per channel as provided in the flowcell map.
+![flowcell_map](images/example.flowcellmap.png)
 
 ## Installation through Docker.
 
