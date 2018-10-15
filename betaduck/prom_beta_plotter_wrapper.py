@@ -83,12 +83,15 @@ def main(args):
     dataset = convert_sample_time_columns(dataset)
 
     # Print the non-trimmed stats before proceeding
-    print_stats(dataset, args.name+".untrimmed", args.plots_dir)
+    print_stats(dataset, args.name+".unfiltered", args.plots_dir)
 
     # Trim the dataset
     dataset = trim_dataset(dataset)
 
-    print_stats(dataset, args.name+".trimmed", args.plots_dir)
+    print_stats(dataset, args.name+".filtered", args.plots_dir)
+
+    # Re-grab the fastq times
+    dataset = convert_sample_time_columns(dataset)
 
     # Reset the index
     dataset.reset_index(drop=True, inplace=True)
