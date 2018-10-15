@@ -3,6 +3,7 @@
 import argparse
 import os
 import pandas as pd
+import dask.dataframe as dd
 import logging
 
 from betaduck.prom_beta_plotter_gen import plot_data, print_stats
@@ -81,7 +82,8 @@ def main(args):
 
     # Merge summary and fastq datasets
     logging.info("Merging datasets")
-    dataset = pd.merge(summary_datasets, fastq_datasets, on=['read_id', 'run_id', 'channel'])
+
+    dataset = dd.merge(summary_datasets, fastq_datasets, on=['read_id', 'run_id', 'channel'])
 
     # Drop summary and fastq datasets which will lower the memory requirements of the system.
     del summary_datasets
