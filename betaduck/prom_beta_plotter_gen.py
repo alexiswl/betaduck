@@ -444,7 +444,7 @@ def plot_quality_per_readlength(dataset, name, plots_dir):
     sns.set_style("dark")
 
     g = sns.jointplot(x='sequence_length_template', y='mean_qscore_template',
-                      data=dataset['sequence_length_template'], kind='hex')
+                      data=dataset, kind='hex')
 
     # Add pearson stat
     g.annotate(stats.pearsonr)
