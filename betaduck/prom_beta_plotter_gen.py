@@ -487,14 +487,17 @@ def plot_pair_plot(dataset, name, plots_dir):
                       "sequence_length_template": "Read Length",
                       "events_ratio": "Events / base"}
 
+    # We need to further lower the events ratio
+    events_ratio_threshold = 5
+
     # Get sample
-    sample_set = dataset.filter(items=items).sample(sample_size)
+    sample_set = dataset.query("events_ratio < %d" % events_ratio_threshold).filter(items=items).sample(sample_size)
 
     # Plot grid
     g = sns.PairGrid(sample_set.rename(columns=rename_columns))
 
     # Scatter in the top corner
-    g.map_upper(plt.scatter, s=1, alpha=0.5)# hue='qualitative_pass', hue_order=["Passed", "Failed"])
+    g.map_upper(plt.scatter, s=1, alpha=0.5)  # hue='qualitative_pass', hue_order=["Passed", "Failed"])
 
     # Kde plots in the bottom corner
     g.map_lower(sns.kdeplot, shade=True, shade_lowest=False)

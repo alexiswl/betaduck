@@ -172,7 +172,7 @@ def get_events_ratio(dataset):
 
 
 def trim_dataset(dataset):
-    logging.info("Trimming dataset to make plots nice")
+    logging.info("Filtering dataset to make plots nice")
     logging.info("Starting with %d reads" % dataset.shape[0])
     # Restrict extremely long reads
     read_length_max_quantile = 0.995
@@ -189,7 +189,7 @@ def trim_dataset(dataset):
     time_max_query = "start_time_float_by_sample < %d" % dataset['start_time_float_by_sample'].quantile(
         time_max_quantile)
     dataset = dataset.query(' & '.join([read_length_query, events_ratio_query, time_min_query, time_max_query]))
-    logging.info("Finished trimming with %d reads" % dataset.shape[0])
+    logging.info("Finished filtering with %d reads" % dataset.shape[0])
 
     return dataset
 
