@@ -105,3 +105,9 @@ Now we get our rewards, some plots produced from the seaborn and matplotlib libr
   + Number of threads to use when reading in fastq and summary datasets.
   + Number of threads used when generating the plots has been restricted to 1.
 
+
+## Troubleshooting
+* Info logs display in UTC time
+  + Docker containers use the time of the container, not that of the outside.
+  + You can fix this by mounting the /etc/localtime into the container
+  + `docker run --volume /data:/data --volume /etc/localtime:/etc/localtime alexiswl/betaduck ..parameters`
