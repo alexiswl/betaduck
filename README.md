@@ -65,6 +65,9 @@ For assistance with options use
   + Likely to be `/data/basecalled/<sample>/<flowcell_port>/config.yaml`
 * --sanitiser
   + Run the fastq sanitiser script before generating the config file.  
+* --active
+  + Use if the run is currently still going.
+  + Removes the last fast5 folder it finds from the dataframe.
 
 **docker parameters**  
 You will also need to bind the /data volume to the container when executing the script.
