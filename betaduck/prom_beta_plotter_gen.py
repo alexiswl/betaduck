@@ -442,11 +442,16 @@ def plot_quality_per_speed(dataset, name, plots_dir):
 
 
 def plot_quality_per_readlength(dataset, name, plots_dir):
+    # Set max quantile, we need to reduce this for the read length histogram as it's not weighter
+    max_quantile = 0.99
+    max_read_length = dataset['sequence_length_template'].quantile(max_quantile)
+    trimmed = dataset.query('sequence_length_template < %d' % max_read_length)
+
     # Seaborn nomenclature for joint plots are a little different
     sns.set_style("dark")
 
     g = sns.jointplot(x='sequence_length_template', y='mean_qscore_template',
-                      data=dataset, kind='hex')
+                      data=trimmed, kind='hex')
 
     # Add pearson stat
     g.annotate(stats.pearsonr)
