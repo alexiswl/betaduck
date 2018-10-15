@@ -2,12 +2,15 @@
 For data-handling on the PromethION beta device.
 
 ## Uses
+
+### Tidying your data
 * Bundle fast5 folds into gzipped tar files
 * Gzip fastq files and move to folder 'fastq'
 * Move sequencing summary files to folder 'sequencing_summary'
 
 ![flowchart](images/tidying_flowchart.png)
 
+### Plotting your sequencing data
 * Plot datasets using the fastq and sequencing summary files. And provide a stats report. Examples of some  plots produced are shown below.
   + Yield produced over time
 ![yield_plot](images/example.yield.png)
