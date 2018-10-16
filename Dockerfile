@@ -1,5 +1,9 @@
 FROM continuumio/miniconda3:latest
 
+# Install other dependencies (gcc)
+RUN apt-get update
+RUN apt-get -y install gcc
+
 # Update conda
 RUN conda update -n base conda --yes
 RUN conda update --all --yes
