@@ -443,7 +443,7 @@ def plot_quality_per_speed(dataset, name, plots_dir):
 
 def plot_quality_per_readlength(dataset, name, plots_dir):
     # Set max quantile, we need to reduce this for the read length histogram as it's not weighter
-    max_quantile = 0.99
+    max_quantile = 0.98
     max_read_length = dataset['sequence_length_template'].quantile(max_quantile)
     trimmed = dataset.query('sequence_length_template < %d' % max_read_length)
 
@@ -533,22 +533,26 @@ def plot_quality_over_time(dataset, name, plots_dir):
     # Set global number of bins
     bins = 16
 
+    # Set max and min values for times
+    min_value = 0
+    max_value = max(dataset['start_time_float_by_sample'])
     # Generate the cut
     dataset['start_time_float_by_sample_bin'] = pd.cut(dataset['start_time_float_by_sample'], bins=bins)
-    dataset['start_time_float_by_sample_bin_left'] = dataset['start_time_float_by_sample_bin'].apply(lambda x: x_yield_to_human_readable(x.left, None))
-    dataset['start_time_float_by_sample_bin_right'] = dataset['start_time_float_by_sample_bin'].apply(lambda x: x_yield_to_human_readable(x.right, None))
+    dataset['start_time_float_by_sample_bin_left'] = dataset['start_time_float_by_sample_bin'].apply(lambda x: max(x_yield_to_human_readable(x.left, None), min_value))
+    dataset['start_time_float_by_sample_bin_right'] = dataset['start_time_float_by_sample_bin'].apply(lambda x: min(x_yield_to_human_readable(x.right, None), max_value))
     dataset['start_time_float_by_sample_bin_str'] = dataset.apply(lambda x: ' - '.join([x.start_time_float_by_sample_bin_left, x.start_time_float_by_sample_bin_right]),
                                                                   axis='columns')
 
     # Generate a ridges plot, splitting the dataframe into fifteen bins.
     # Initialize the FacetGrid object
-    pal = sns.cubehelix_palette(10, rot=-.25, light=.7)
-    g = sns.FacetGrid(dataset, row="start_time_float_by_sample_bin_str", hue="start_time_float_by_sample_bin_str",
-                      aspect=15, height=1, palette=pal)
+    pal = sns.cubehelix_palette(bins, rot=-.25, light=.7)
+    g = sns.FacetGrid(dataset,
+                      row="start_time_float_by_sample_bin_str", hue="start_time_float_by_sample_bin_str",
+                      aspect=15, height=2, palette=pal)
 
     # Draw the densities in a few steps
-    g.map(sns.kdeplot, "mean_qscore_template", clip_on=False, shade=True, alpha=1, lw=1.5, bw=.2)
-    g.map(sns.kdeplot, "mean_qscore_template", clip_on=False, color="w", lw=2, bw=.2)
+    g.map(sns.kdeplot, "mean_qscore_template", clip_on=False, shade=True, alpha=1, lw=1.5, bw='scott')
+    g.map(sns.kdeplot, "mean_qscore_template", clip_on=False, color="w", lw=2, bw='scott')
     g.map(plt.axhline, y=0, lw=2, clip_on=False)
     g.map(plt.axhline, y=0, lw=2, clip_on=False)
 

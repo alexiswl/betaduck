@@ -83,7 +83,15 @@ def main(args):
     # Merge summary and fastq datasets
     logging.info("Merging datasets")
 
-    dataset = dd.merge(summary_datasets, fastq_datasets, on=['read_id', 'run_id', 'channel'])
+    # Merging works faster on indexes
+    summary_datasets.set_index(['read_id', 'run_id', 'channel'], inplace=True)
+    fastq_datasets.set_index(['read_id', 'run_id', 'channel'], inplace=True)
+
+    # Merge on indexes
+    dataset = dd.merge(summary_datasets, fastq_datasets, left_index=True, right_index=True)
+
+    # Now drop the indexes
+    dataset.reset_index(['read_id', 'run_id', 'channel'], inplace=True)
 
     # Drop summary and fastq datasets which will lower the memory requirements of the system.
     del summary_datasets
@@ -97,6 +105,8 @@ def main(args):
 
     # Trim the dataset
     dataset = trim_dataset(dataset)
+
+    # Create a venn diagram here of the reads lost.
 
     # Reprint the filtered stats
     print_stats(dataset, args.name+".filtered", args.plots_dir)

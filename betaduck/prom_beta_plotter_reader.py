@@ -179,7 +179,7 @@ def trim_dataset(dataset):
     read_length_query = "sequence_length_template < %d" % dataset['sequence_length_template'].quantile(
         read_length_max_quantile)
     # Events thresold (there's some extreme fail reads up there)
-    events_ratio_threshold = 10
+    events_ratio_threshold = 20
     events_ratio_query = "events_ratio < %d" % events_ratio_threshold
     # Some of the times of the fastq are a little whacked.
     time_min_quantile = 0.001
