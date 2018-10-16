@@ -7,6 +7,7 @@ from Bio import SeqIO
 import concurrent.futures
 from datetime import timedelta
 import dask.dataframe as dd
+from betaduck.prom_beta_plotter_gen import plot_venn_diagram_of_filtered_data
 
 import logging
 
@@ -171,7 +172,7 @@ def get_events_ratio(dataset):
         axis='columns')
 
 
-def trim_dataset(dataset):
+def trim_dataset(dataset, plots_dir, name):
     logging.info("Filtering dataset to make plots nice")
     logging.info("Starting with %d reads" % dataset.shape[0])
     # Restrict extremely long reads
@@ -188,6 +189,24 @@ def trim_dataset(dataset):
         time_min_quantile)
     time_max_query = "start_time_float_by_sample < %d" % dataset['start_time_float_by_sample'].quantile(
         time_max_quantile)
+    time_query = ' & '.join([time_min_query, time_max_query])
+
+    # Use the not's to create the venn-digram
+    read_length_query_not = "sequence_length_template > %d" % dataset['sequence_length_template'].quantile(
+        read_length_max_quantile)
+    events_ratio_query_not = "events_ratio < %d" % events_ratio_threshold
+    time_min_query_not = "start_time_float_by_sample < %d" % dataset['start_time_float_by_sample'].quantile(
+        time_min_quantile)
+    time_max_query_not = "start_time_float_by_sample > %d" % dataset['start_time_float_by_sample'].quantile(
+        time_max_quantile)
+    time_query_not = ' & '.join([time_min_query_not, time_max_query_not])
+
+    filter_dict = {'Time': (time_query, time_query_not),
+                   'Events Ratio': (events_ratio_query, events_ratio_query_not),
+                   'Max Read Length': (read_length_query, read_length_query_not)}
+
+    plot_venn_diagram_of_filtered_data(dataset, filter_dict, plots_dir, name)
+
     dataset = dataset.query(' & '.join([read_length_query, events_ratio_query, time_min_query, time_max_query]))
     logging.info("Finished filtering with %d reads" % dataset.shape[0])
 

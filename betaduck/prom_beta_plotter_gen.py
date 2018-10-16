@@ -8,6 +8,7 @@ import matplotlib
 matplotlib.use('agg')
 from scipy import stats
 import matplotlib.pyplot as plt
+from matplotlib_venn import venn3
 import humanfriendly
 from matplotlib.ticker import FuncFormatter
 from matplotlib.pylab import savefig
@@ -440,6 +441,30 @@ def plot_quality_per_speed(dataset, name, plots_dir):
     savefig(os.path.join(plots_dir, "%s.speed_vs_qscore.png" % name))
     plt.close('all')
 
+
+def plot_venn_diagram_of_filtered_data(dataset, filter_dict, name, plots_dir):
+    # Iterate through each of the different objects obtaining the shape required for the venn diagram
+    time_subset = dataset.query(' & '.join([filter_dict['Time'][0], filter_dict['Events Ratio'][1], filter_dict['Max Read Length'][1]])).shape[0]
+    events_subset = dataset.query(' & '.join([filter_dict['Time'][1], filter_dict['Events Ratio'][0], filter_dict['Max Read Length'][1]])).shape[0]
+    time_and_events_subset = dataset.query(' & '.join([filter_dict['Time'][1], filter_dict['Events Ratio'][1], filter_dict['Max Read Length'][0]])).shape[0]
+    length_subset = dataset.query(' & '.join([filter_dict['Time'][1], filter_dict['Events Ratio'][1], filter_dict['Max Read Length'][0]])).shape[0]
+    time_and_length_subset = dataset.query(' & '.join([filter_dict['Time'][0], filter_dict['Events Ratio'][1], filter_dict['Max Read Length'][0]])).shape[0]
+    events_and_length_subset = dataset.query(' & '.join([filter_dict['Time'][1], filter_dict['Events Ratio'][0], filter_dict['Max Read Length'][0]])).shape[0]
+    all_subset = dataset.query(' & '.join([filter_dict['Time'][0], filter_dict['Events Ratio'][0], filter_dict['Max Read Length'][0]])).shape[0]
+    fig, ax = plt.subplots()
+    v = venn3(subsets=(time_subset, events_subset, time_and_events_subset, length_subset,
+                       time_and_length_subset, events_and_length_subset, all_subset),
+              set_labels=['Time', "Events Ratio", "Max Read Length"],
+              ax=ax)
+
+    # Set titles
+    ax.set_title("Reads excluded by condition")
+
+    # Ensure labels are not missed
+    fig.tight_layout()
+
+    # Save and close figure
+    savefig(os.path.join(plots_dir, "%s.venn_diagram.png" % name))
 
 def plot_quality_per_readlength(dataset, name, plots_dir):
     # Set max quantile, we need to reduce this for the read length histogram as it's not weighter

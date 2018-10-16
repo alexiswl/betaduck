@@ -104,7 +104,7 @@ def main(args):
     print_stats(dataset, args.name+".unfiltered", args.plots_dir)
 
     # Trim the dataset
-    dataset = trim_dataset(dataset)
+    dataset = trim_dataset(dataset, args.plots_dir, args.name)
 
     # Create a venn diagram here of the reads lost.
 
