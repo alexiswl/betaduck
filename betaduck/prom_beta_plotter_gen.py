@@ -529,6 +529,55 @@ def plot_pair_plot(dataset, name, plots_dir):
     plt.close('all')
 
 
+def plot_quality_over_time(dataset, name, plots_dir):
+    # Set global number of bins
+    bins = 16
+
+    # Generate the cut
+    dataset['start_time_float_by_sample_bin'] = pd.cut(dataset['start_time_float_by_sample'], bins=bins)
+    dataset['start_time_float_by_sample_bin_left'] = dataset['start_time_float_by_sample_bin'].apply(lambda x: x_yield_to_human_readable(x.left, None))
+    dataset['start_time_float_by_sample_bin_right'] = dataset['start_time_float_by_sample_bin'].apply(lambda x: x_yield_to_human_readable(x.right, None))
+    dataset['start_time_float_by_sample_bin_str'] = dataset.apply(lambda x: ' - '.join([x.start_time_float_by_sample_bin_left, x.start_time_float_by_sample_bin_right]),
+                                                                  axis='columns')
+
+    # Generate a ridges plot, splitting the dataframe into fifteen bins.
+    # Initialize the FacetGrid object
+    pal = sns.cubehelix_palette(10, rot=-.25, light=.7)
+    g = sns.FacetGrid(dataset, row="start_time_float_by_sample_bin_str", hue="start_time_float_by_sample_bin_str",
+                      aspect=15, height=1, palette=pal)
+
+    # Draw the densities in a few steps
+    g.map(sns.kdeplot, "mean_qscore_template", clip_on=False, shade=True, alpha=1, lw=1.5, bw=.2)
+    g.map(sns.kdeplot, "mean_qscore_template", clip_on=False, color="w", lw=2, bw=.2)
+    g.map(plt.axhline, y=0, lw=2, clip_on=False)
+    g.map(plt.axhline, y=0, lw=2, clip_on=False)
+
+    # Define and use a simple function to label the plot in axes coordinates
+    def label(x, color, x_label):
+        ax = plt.gca()
+        ax.text(0, .6, x_label, fontweight="bold", color=color,
+                ha="left", va="center", transform=ax.transAxes)
+
+    g.map(label, "start_time_float_by_sample_bin_str")
+
+    # Remove axes details that don't play well with overlap
+    g.set_titles("")
+    g.set(yticks=[])
+    g.despine(bottom=True, left=True)
+
+    # Add title
+    g.fig.suptitle("Quality distribution over time")
+    # Reset xlabel
+    g.set_xlabels("Mean Q-Score")
+
+    # Reduce plot to make room for suptitle
+    g.fig.subplots_adjust(top=0.95)
+
+    # Save figure
+    savefig(os.path.join(plots_dir, "%s.q_score.time.split.png" % name))
+    plt.close('all')
+
+
 def plot_pore_speed(dataset, name, plots_dir):
     # Plot setting start_time_float as axis index
 
@@ -632,7 +681,8 @@ def plot_data(dataset, name, plots_dir):
     # Matplotlib base plots
     plotting_functions = [plot_yield, plot_yield_by_quality, plot_reads, plot_read_by_quality,
                           plot_weighted_hist, plot_read_hist, plot_flowcell, plot_pore_speed,
-                          plot_quality_hist, plot_quality_per_speed, plot_quality_per_readlength,
+                          plot_quality_hist, plot_quality_over_time,
+                          plot_quality_per_speed, plot_quality_per_readlength,
                           plot_events_ratio, plot_pair_plot]
 
     # Just iterate through each of the plotting methods.
