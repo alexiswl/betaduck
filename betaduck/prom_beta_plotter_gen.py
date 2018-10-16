@@ -553,12 +553,13 @@ def plot_quality_over_time(dataset, name, plots_dir):
     g.map(plt.axhline, y=0, lw=2, clip_on=False)
 
     # Define and use a simple function to label the plot in axes coordinates
-    def label(x, color, x_label):
+    # Not sure why, but input must be name as function.
+    def set_xlabel(color, label):
         ax = plt.gca()
-        ax.text(0, .6, x_label, fontweight="bold", color=color,
+        ax.text(0, .6, label, fontweight="bold", color=color,
                 ha="left", va="center", transform=ax.transAxes)
 
-    g.map(label, "start_time_float_by_sample_bin_str")
+    g.map(set_xlabel, color='black', label="start_time_float_by_sample_bin_str")
 
     # Remove axes details that don't play well with overlap
     g.set_titles("")
