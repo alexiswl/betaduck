@@ -12,6 +12,9 @@ RUN conda update --all --yes
 RUN git clone -b dev https://github.com/alexiswl/betaduck.git
 WORKDIR ./betaduck
 
+# Install matplotlib_venn through pip
+RUN pip install matplotlib_venn
+
 # Install required packages
 RUN conda install --file requirements.txt --yes
 
