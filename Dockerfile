@@ -18,7 +18,7 @@ RUN conda update --all --yes
 RUN pip install --upgrade pip
 
 # Install poreduck using pip
-RUN pip install -e .
+RUN pip install -e . --ignore-installed
 
 # Install deconcatenate fastqs
 RUN pip install ont-fastq-deconcatenate
