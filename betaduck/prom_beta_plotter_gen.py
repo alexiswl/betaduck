@@ -452,10 +452,10 @@ def plot_venn_diagram_of_filtered_data(dataset, filter_dict, name, plots_dir):
     events_and_length_subset = dataset.query(' & '.join([filter_dict['Time'][1], filter_dict['Events Ratio'][0], filter_dict['Max Read Length'][0]])).shape[0]
     all_subset = dataset.query(' & '.join([filter_dict['Time'][0], filter_dict['Events Ratio'][0], filter_dict['Max Read Length'][0]])).shape[0]
     fig, ax = plt.subplots()
-    v = venn3(subsets=(time_subset, events_subset, time_and_events_subset, length_subset,
-                       time_and_length_subset, events_and_length_subset, all_subset),
-              set_labels=['Time', "Events Ratio", "Max Read Length"],
-              ax=ax)
+    venn3(subsets=(time_subset, events_subset, time_and_events_subset, length_subset,
+                   time_and_length_subset, events_and_length_subset, all_subset),
+          set_labels=['Time', "Events Ratio", "Max Read Length"],
+          ax=ax)
 
     # Set titles
     ax.set_title("Reads excluded by condition")
