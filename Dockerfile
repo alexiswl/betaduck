@@ -1,5 +1,9 @@
 FROM continuumio/miniconda3:latest
 
+# Install other dependencies (gcc)
+RUN apt-get update
+RUN apt-get -y install gcc
+
 # Update conda
 RUN conda update -n base conda --yes
 RUN conda update --all --yes
@@ -18,7 +22,7 @@ RUN conda update --all --yes
 RUN pip install --upgrade pip
 
 # Install poreduck using pip
-RUN pip install -e .
+RUN pip install -e . --ignore-installed
 
 # Install deconcatenate fastqs
 RUN pip install ont-fastq-deconcatenate
