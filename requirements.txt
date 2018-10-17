@@ -6,7 +6,6 @@ kiwisolver==1.0.1
 dask==0.19.3
 h5py==2.8.0
 matplotlib==3.0.0
-matplotlib-venn==0.11.5
 numpy==1.15.2
 pandas==0.23.4
 patsy==0.5.0
