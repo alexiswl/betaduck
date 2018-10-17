@@ -563,8 +563,8 @@ def plot_quality_over_time(dataset, name, plots_dir):
     max_value = max(dataset['start_time_float_by_sample'])
     # Generate the cut
     dataset['start_time_float_by_sample_bin'] = pd.cut(dataset['start_time_float_by_sample'], bins=bins)
-    dataset['start_time_float_by_sample_bin_left'] = dataset['start_time_float_by_sample_bin'].apply(lambda x: max(x_yield_to_human_readable(x.left, None), min_value))
-    dataset['start_time_float_by_sample_bin_right'] = dataset['start_time_float_by_sample_bin'].apply(lambda x: min(x_yield_to_human_readable(x.right, None), max_value))
+    dataset['start_time_float_by_sample_bin_left'] = dataset['start_time_float_by_sample_bin'].apply(lambda x: max(x.left, min_value))
+    dataset['start_time_float_by_sample_bin_right'] = dataset['start_time_float_by_sample_bin'].apply(lambda x: min(x.right, max_value))
     dataset['start_time_float_by_sample_bin_str'] = dataset.apply(lambda x: ' - '.join([x.start_time_float_by_sample_bin_left, x.start_time_float_by_sample_bin_right]),
                                                                   axis='columns')
 
