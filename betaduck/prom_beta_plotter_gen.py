@@ -8,6 +8,7 @@ import matplotlib
 matplotlib.use('agg')
 from scipy import stats
 import matplotlib.pyplot as plt
+from matplotlib_venn import venn3
 import humanfriendly
 from matplotlib.ticker import FuncFormatter
 from matplotlib.pylab import savefig
@@ -441,9 +442,33 @@ def plot_quality_per_speed(dataset, name, plots_dir):
     plt.close('all')
 
 
+def plot_venn_diagram_of_filtered_data(dataset, filter_dict, name, plots_dir):
+    # Iterate through each of the different objects obtaining the shape required for the venn diagram
+    time_subset = dataset.query(' & '.join([filter_dict['Time'][0], filter_dict['Events Ratio'][1], filter_dict['Max Read Length'][1]])).shape[0]
+    events_subset = dataset.query(' & '.join([filter_dict['Time'][1], filter_dict['Events Ratio'][0], filter_dict['Max Read Length'][1]])).shape[0]
+    time_and_events_subset = dataset.query(' & '.join([filter_dict['Time'][1], filter_dict['Events Ratio'][1], filter_dict['Max Read Length'][0]])).shape[0]
+    length_subset = dataset.query(' & '.join([filter_dict['Time'][1], filter_dict['Events Ratio'][1], filter_dict['Max Read Length'][0]])).shape[0]
+    time_and_length_subset = dataset.query(' & '.join([filter_dict['Time'][0], filter_dict['Events Ratio'][1], filter_dict['Max Read Length'][0]])).shape[0]
+    events_and_length_subset = dataset.query(' & '.join([filter_dict['Time'][1], filter_dict['Events Ratio'][0], filter_dict['Max Read Length'][0]])).shape[0]
+    all_subset = dataset.query(' & '.join([filter_dict['Time'][0], filter_dict['Events Ratio'][0], filter_dict['Max Read Length'][0]])).shape[0]
+    fig, ax = plt.subplots()
+    venn3(subsets=(time_subset, events_subset, time_and_events_subset, length_subset,
+                   time_and_length_subset, events_and_length_subset, all_subset),
+          set_labels=['Time', "Events Ratio", "Max Read Length"],
+          ax=ax)
+
+    # Set titles
+    ax.set_title("Reads excluded by condition")
+
+    # Ensure labels are not missed
+    fig.tight_layout()
+
+    # Save and close figure
+    savefig(os.path.join(plots_dir, "%s.venn_diagram.png" % name))
+
 def plot_quality_per_readlength(dataset, name, plots_dir):
     # Set max quantile, we need to reduce this for the read length histogram as it's not weighter
-    max_quantile = 0.99
+    max_quantile = 0.98
     max_read_length = dataset['sequence_length_template'].quantile(max_quantile)
     trimmed = dataset.query('sequence_length_template < %d' % max_read_length)
 
@@ -526,6 +551,61 @@ def plot_pair_plot(dataset, name, plots_dir):
 
     # Save figure
     savefig(os.path.join(plots_dir, "%s.pair_plot.png" % name))
+    plt.close('all')
+
+
+def plot_quality_over_time(dataset, name, plots_dir):
+    # Set global number of bins
+    bins = 16
+
+    # Set max and min values for times
+    min_value = 0
+    max_value = max(dataset['start_time_float_by_sample'])
+    # Generate the cut
+    dataset['start_time_float_by_sample_bin'] = pd.cut(dataset['start_time_float_by_sample'], bins=bins)
+    dataset['start_time_float_by_sample_bin_left'] = dataset['start_time_float_by_sample_bin'].apply(lambda x: max(x.left, min_value))
+    dataset['start_time_float_by_sample_bin_right'] = dataset['start_time_float_by_sample_bin'].apply(lambda x: min(x.right, max_value))
+    dataset['start_time_float_by_sample_bin_str'] = dataset.apply(lambda x: ' - '.join(map(str, [x_yield_to_human_readable(x.start_time_float_by_sample_bin_left, None),
+                                                                                                 x_yield_to_human_readable(x.start_time_float_by_sample_bin_right, None)])),
+                                                                  axis='columns')
+
+    # Generate a ridges plot, splitting the dataframe into fifteen bins.
+    # Initialize the FacetGrid object
+    pal = sns.cubehelix_palette(bins, rot=-.25, light=.7)
+    g = sns.FacetGrid(dataset,
+                      row="start_time_float_by_sample_bin_str", hue="start_time_float_by_sample_bin_str",
+                      aspect=15, height=2, palette=pal)
+
+    # Draw the densities in a few steps
+    g.map(sns.kdeplot, "mean_qscore_template", clip_on=False, shade=True, alpha=1, lw=1.5, bw='scott')
+    g.map(sns.kdeplot, "mean_qscore_template", clip_on=False, color="w", lw=2, bw='scott')
+    g.map(plt.axhline, y=0, lw=2, clip_on=False)
+    g.map(plt.axhline, y=0, lw=2, clip_on=False)
+
+    # Define and use a simple function to label the plot in axes coordinates
+    # Not sure why, but input must be name as function.
+    def set_xlabel(color, label):
+        ax = plt.gca()
+        ax.text(0, .6, label, fontweight="bold", color=color,
+                ha="left", va="center", transform=ax.transAxes)
+
+    g.map(set_xlabel, color='black', label="start_time_float_by_sample_bin_str")
+
+    # Remove axes details that don't play well with overlap
+    g.set_titles("")
+    g.set(yticks=[])
+    g.despine(bottom=True, left=True)
+
+    # Add title
+    g.fig.suptitle("Quality distribution over time")
+    # Reset xlabel
+    g.set_xlabels("Mean Q-Score")
+
+    # Reduce plot to make room for suptitle
+    g.fig.subplots_adjust(top=0.95)
+
+    # Save figure
+    savefig(os.path.join(plots_dir, "%s.q_score.time.split.png" % name))
     plt.close('all')
 
 
@@ -632,7 +712,8 @@ def plot_data(dataset, name, plots_dir):
     # Matplotlib base plots
     plotting_functions = [plot_yield, plot_yield_by_quality, plot_reads, plot_read_by_quality,
                           plot_weighted_hist, plot_read_hist, plot_flowcell, plot_pore_speed,
-                          plot_quality_hist, plot_quality_per_speed, plot_quality_per_readlength,
+                          plot_quality_hist, plot_quality_over_time,
+                          plot_quality_per_speed, plot_quality_per_readlength,
                           plot_events_ratio, plot_pair_plot]
 
     # Just iterate through each of the plotting methods.

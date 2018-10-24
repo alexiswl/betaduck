@@ -2,13 +2,17 @@
 For data-handling on the PromethION beta device.
 
 ## Uses
-* Bundle fast5 folds into gzipped tar files
+
+### Tidying your data
+* Bundle fast5 folds into gzipped tar files (much easier to then rsync via ssh or mount - see the commands below)
 * Gzip fastq files and move to folder 'fastq'
 * Move sequencing summary files to folder 'sequencing_summary'
 
 ![flowchart](images/tidying_flowchart.png)
 
-* Plot datasets using the fastq and sequencing summary files. And provide a stats report. Examples of some  plots produced are shown below.
+### Plotting your sequencing data
+* Plot datasets using the fastq and sequencing summary files. And provide a stats report. 
+* Examples of some  plots produced are shown below.
   + Yield produced over time
 ![yield_plot](images/example.yield.png)
   + Histogram of read-length distribution
@@ -61,6 +65,9 @@ For assistance with options use
   + Likely to be `/data/basecalled/<sample>/<flowcell_port>/config.yaml`
 * --sanitiser
   + Run the fastq sanitiser script before generating the config file.  
+* --active
+  + Use if the run is currently still going.
+  + Removes the last fast5 folder it finds from the dataframe.
 
 **docker parameters**  
 You will also need to bind the /data volume to the container when executing the script.
@@ -115,6 +122,27 @@ Now we get our rewards, some plots produced from the seaborn and matplotlib libr
   + Number of threads to use when reading in fastq and summary datasets.
   + Number of threads used when generating the plots has been restricted to 1.
 
+## Rsyncing to an external location
+Now that your nanopore data is tidy, you can rsync the data across using rsync.
+You will need to specify which files to include and exclude in the rsync comamnd.
+```
+rsync --archive ' \ # Archive allows rsync to find files recursively
+--include='*/' \ # Look for the following file endinds in subfolders
+--include='*.fast5.tar.gz' \ # Find all the fast5 tars
+--include='*.fastq.gz' \ # Find all the gzipped fastq files
+--include='*.sequencing_summary.txt' \ # Find all the moved sequencing summary files
+--include='*.png' \ # Carry over any plots that have been generated
+--exclude='*' \ # Exclude all other files
+--prune-empty-dirs \ # Don't download folders that won't have files in them (like reads/0 etc)
+/path/to/data/basecalled/reads
+/dest/directory
+```
+
+This is also acceptable to do whilst the run is still being generated or the betaduck tidy script is running.
+fast5.tar.gz files are written as fast5.tar.gz.tmp initially and then moved so they won't be listed by the rsync if they're still being written to.
+
+### Additional options to rsync
+`--remove-source-files` if you wish to remove the data from the PromethION device.
 
 ## Troubleshooting
 * Info logs display in UTC time
