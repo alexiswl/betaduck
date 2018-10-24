@@ -17,9 +17,9 @@ def run_function(args):
     # Which function of the three did we choose?
     if args.command == "config":
         import betaduck.prom_beta_tar_gen_config as command_to_run
-    if args.command == "tidy":
+    elif args.command == "tidy":
         import betaduck.prom_beta_tar_wrapper as command_to_run
-    if args.command == "plot":
+    elif args.command == "plot":
         import betaduck.prom_beta_plotter_wrapper as command_to_run
     else:
         return
