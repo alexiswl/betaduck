@@ -218,5 +218,6 @@ def main(args):
             success = item.result()
 
 
-
+if __name__ == "__main__":
+    main()
 
