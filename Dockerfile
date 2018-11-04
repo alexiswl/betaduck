@@ -9,7 +9,7 @@ RUN conda update -n base conda --yes
 RUN conda update --all --yes
 
 # Download poreduck
-RUN git clone -b dev https://github.com/alexiswl/betaduck.git
+RUN git clone -b master https://github.com/alexiswl/betaduck.git
 WORKDIR ./betaduck
 
 # Install matplotlib_venn through pip
