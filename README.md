@@ -115,3 +115,30 @@ Now we get our rewards, some plots produced from the seaborn and matplotlib libr
   + Number of threads to use when reading in fastq and summary datasets.
   + Number of threads used when generating the plots has been restricted to 1.
 
+## Aligning data with betaduck
+Using minimap2 v2.13 and samtools v.19, betaduck will align the fastq files to your reference genome.
+Using the --filter_lambda option, the lambda genome is appended to the reference as an additional chromosome.
+Reads that align to the lambda chromosome are then split from the rest of the rads that align to the genome.
+
+### Setting up your genome file
+* Create the directory /data/genome on your PromethION.
+* All genomes will sit under here with this structure
+  * /data/genome/<genome_name>/genome.fa 
+    * you may need to rename your reference file to genome.fa
+  * minimap2 indexes will automatically be built the first time they're used under:
+    * /data/genome/<genome_name>/genome.mmi
+  * If the --filter_lambda option is used, two more files will be generated for each genome
+    * /data/genome/<genome_name>/genome.w_lambda.fa
+    * /data/genome/<genome_name>/genome.w_lambda.mmi 
+* Betaduck will automatically download the lambda reference.
+  * The lambda reference will be placed in:
+  * /data/genome/lambda/genome.fa
+  
+**betaduck align parameters**
+* --fastq_dir=/data/basecalled/<sample_name>/<flowcell_port>/fastq
+* --genome_dir=/data/genome (where the reference directories are found)
+* --genome=<genome_name> (Subdirectory of the genome_dir parameter)
+* --output_dir=/data/basecalled/<sample_name>/<flowcell_port>/alignment
+* --filter_lambda (Do you want the lambda sequences removed)
+* --cs=long|short|none (Do you want the cs tag for each alignment)
+* --md (Do you want the MD tag for each alignment)
