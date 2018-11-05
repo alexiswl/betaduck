@@ -9,7 +9,7 @@ RUN conda update -n base conda --yes
 RUN conda update --all --yes
 
 # Install samtools
-RUN conda install -c bioconda samtools=1.8 --yes
+RUN conda install -c bioconda samtools=1.9 --yes
 
 # Install minimap2
 RUN conda install -c bioconda minimap2=2.13 --yes
