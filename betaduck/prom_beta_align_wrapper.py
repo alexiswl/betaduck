@@ -43,7 +43,7 @@ def generate_index(index_file, genome_file):
         logger.warning("Stderr: %s" % minimap2_index_proc.stderr.decode())
 
 
-def generate_alignment(genome_dir, index, input_fastq, alignment_file, md, cs, w_lambda=False):
+def generate_alignment(genome_dir, genome, index, input_fastq, alignment_file, md, cs, w_lambda=False):
     # Create alignment command
     minimap2_alignment_command = ["minimap2", "-a"]
     # Add in parameters
@@ -68,6 +68,8 @@ def generate_alignment(genome_dir, index, input_fastq, alignment_file, md, cs, w
                           stdout=subprocess.PIPE, stderr=dev_null)
     p1.stdout.close()
     if not w_lambda:
+        alignment_file = os.path.join(os.path.dirname(alignment_file), genome,
+                                      os.path.basename(alignment_file))
         p3 = subprocess.Popen(["samtools", "sort", "-o", alignment_file],
                               stdin=p2.stdout,
                               stdout=dev_null, stderr=dev_null)
@@ -79,7 +81,8 @@ def generate_alignment(genome_dir, index, input_fastq, alignment_file, md, cs, w
         # If w_lambda, pipe sort to stdout
         lambda_alignment_file = os.path.join(os.path.dirname(alignment_file), "lambda",
                                              re.sub(".bam$", ".lambda.bam", os.path.basename(alignment_file)))
-        alignment_file_no_lambda = re.sub(".bam$", ".lambda-filt.bam", alignment_file)
+        alignment_file_no_lambda = os.path.join(os.path.dirname(alignment_file), genome,
+                                             re.sub(".bam$", ".lambda-filt.bam", os.path.basename(alignment_file)))
         lambda_bed = os.path.join(genome_dir, "lambda", "genome.bed")
         p3 = subprocess.Popen(["samtools", "sort"],
                               stdin=p2.stdout,
@@ -103,9 +106,9 @@ def check_args(args):
 
 
 def collect_fastqs(fastq_dir):
-    fastq_files = [os.path.join(fastq_dir, fastq_file)
-                   for fastq_file in os.listdir(fastq_dir)
-                   if fastq_file.endswith(".fastq.gz")]
+    fastq_files = sorted([os.path.join(fastq_dir, fastq_file)
+                          for fastq_file in os.listdir(fastq_dir)
+                          if fastq_file.endswith(".fastq.gz")])
 
     if len(fastq_files) == 0:
         logging.warning("Could not find any fastq files")
@@ -212,13 +215,16 @@ def main(args):
     threads = 1 if args.threads == 1 else args.threads - 1
     logging.info("Given we need to take of the parent script, "
                  "running %d jobs in parallel" % threads)
+    # Create host dir
+    if not os.path.isdir(os.path.join(args.output_dir, args.genome)):
+        os.mkdir(os.path.join(args.output_dir, args.genome))
     # Create lambda_dir
     if args.w_lambda and not os.path.isdir(os.path.join(args.output_dir, "lambda")):
         os.mkdir(os.path.join(args.output_dir, "lambda"))
     # Run commands in parallel
     # Run in parallel
     with concurrent.futures.ThreadPoolExecutor(max_workers=threads) as executor:
-        iterator = {executor.submit(generate_alignment, args.genome_dir, index, fastq_file, alignment_file, args.md, args.cs, args.w_lambda):
+        iterator = {executor.submit(generate_alignment, args.genome_dir, args.genome, index, fastq_file, alignment_file, args.md, args.cs, args.w_lambda):
                     (fastq_file, alignment_file) for fastq_file, alignment_file in zip(fastq_files, alignment_files)}
         for item in concurrent.futures.as_completed(iterator):
             parameter_input = iterator[item]
