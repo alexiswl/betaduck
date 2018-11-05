@@ -100,6 +100,11 @@ def main():
                               help="Name of genome in genome directory")
     align_parser.add_argument("--filter_lambda", dest="w_lambda",
                               default=False, action='store_true')
+    align_parser.add_argument("--cs", type=str, default='long',
+			      choices=["long", "short", "none"],
+			      help="CS tag type")
+    align_parser.add_argument("--md", default=False, action='store_true',
+			      help="Add MD tag to BAM file")
     align_parser.add_argument("--threads", type=int, default=1)
     align_parser.set_defaults(func=run_function)
 

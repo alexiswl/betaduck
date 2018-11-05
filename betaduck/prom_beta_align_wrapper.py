@@ -63,7 +63,7 @@ def generate_alignment(genome_dir, index, input_fastq, alignment_file, md, cs, w
     dev_null = open(os.devnull, 'w')
     p1 = subprocess.Popen(minimap2_alignment_command,
                           stdout=subprocess.PIPE, stderr=dev_null)
-    p2 = subprocess.Popen(["samtools", "view", '-b'],
+    p2 = subprocess.Popen(["samtools", "view", '-bu'],
                           stdin=p1.stdout,
                           stdout=subprocess.PIPE, stderr=dev_null)
     p1.stdout.close()
@@ -78,15 +78,17 @@ def generate_alignment(genome_dir, index, input_fastq, alignment_file, md, cs, w
     else:
         # If w_lambda, pipe sort to stdout
         lambda_alignment_file = os.path.join(os.path.dirname(alignment_file), "lambda",
-                                             re.sub(".bam$", ".lambda.bam$", os.path.basename(alignment_file)))
+                                             re.sub(".bam$", ".lambda.bam", os.path.basename(alignment_file)))
         alignment_file_no_lambda = re.sub(".bam$", ".lambda-filt.bam", alignment_file)
-        lambda_bed = os.path.join(genome_dir, "lamda", "genome.fa.fai")
+        lambda_bed = os.path.join(genome_dir, "lambda", "genome.bed")
         p3 = subprocess.Popen(["samtools", "sort"],
                               stdin=p2.stdout,
                               stdout=subprocess.PIPE, stderr=dev_null)
         p2.stdout.close()
         p4 = subprocess.Popen(["samtools", "view", "-b", "-L", lambda_bed,
-                               "-U", alignment_file_no_lambda, "-o", lambda_alignment_file])
+                               "-U", alignment_file_no_lambda, "-o", lambda_alignment_file],
+                              stdin=p3.stdout,
+                              stdout=dev_null, stderr=dev_null)
         p3.stdout.close()
         out, err = p4.communicate()
         if not p4.returncode == 0:
@@ -101,7 +103,7 @@ def check_args(args):
 
 
 def collect_fastqs(fastq_dir):
-    fastq_files = [fastq_file
+    fastq_files = [os.path.join(fastq_dir, fastq_file)
                    for fastq_file in os.listdir(fastq_dir)
                    if fastq_file.endswith(".fastq.gz")]
 
@@ -114,7 +116,7 @@ def collect_fastqs(fastq_dir):
 
 def get_alignment_files(output_dir, fastq_files):
     alignment_files = [os.path.join(output_dir,
-                                    re.sub(".fastq.gz", ".sam", os.path.basename(fastq_file)))
+                                    re.sub(".fastq.gz", ".bam", os.path.basename(fastq_file)))
                        for fastq_file in fastq_files]
     return alignment_files
 
@@ -146,7 +148,7 @@ def get_index(genome_dir, genome, w_lambda):
         logging.error("No such directory %s" % os.path.join(genome_dir, genome))
         logging.error("Please refer to manual on generating genome structure")
         sys.exit()
-    if not os.path.isdir(os.path.join(genome_dir, genome, "genome.fa")):
+    if not os.path.isfile(os.path.join(genome_dir, genome, "genome.fa")):
         logging.error("No such file %s" % os.path.join(genome_dir, genome, "genome.fa"))
         logging.error("Please refer to manual on generating genome structure")
         sys.exit()
@@ -155,17 +157,22 @@ def get_index(genome_dir, genome, w_lambda):
     if w_lambda and not os.path.isdir(os.path.join(genome_dir, "lambda")):
         logging.info("Lambda directory does not exist but lambda specified. Creating directory")
         os.mkdir(os.path.join(genome_dir, "lambda"))
-    if w_lambda and not os.path.isfile(os.path.join(genome_dir, "lamda", "genome.fa")):
+    if w_lambda and not os.path.isfile(os.path.join(genome_dir, "lambda", "genome.fa")):
         logging.info("Cannot find lambda genome but lambda filtering was specified")
         logging.info("Downloading lambda genome")
         subprocess.run(['curl', '-O', lambda_genome], cwd=os.path.join(genome_dir, "lambda"))
         logging.info("Unzipping lambda genome")
-        subprocess.run(['gzip', '--decompress', os.path.join(genome_dir, "lamda", os.path.basename(lambda_genome))])
-        shutil.move(os.path.join(genome_dir, "lamda", re.sub(".gz", "", os.path.basename(lambda_genome))),
-                    os.path.join(genome_dir, "lamda", "genome.fa"))
+        subprocess.run(['gzip', '--decompress', os.path.join(genome_dir, "lambda", os.path.basename(lambda_genome))])
+        shutil.move(os.path.join(genome_dir, "lambda", re.sub(".gz", "", os.path.basename(lambda_genome))),
+                    os.path.join(genome_dir, "lambda", "genome.fa"))
     # Run fasta index (used as a bed file for later)
-    if w_lambda and not os.path.isfile(os.path.join(genome_dir, "lamda", "genome.fa.fai")):
-        subprocess.run(["samtools", "faidx", os.path.join(genome_dir, "lamda", "genome.fa.fai")])
+    if w_lambda and not os.path.isfile(os.path.join(genome_dir, "lambda", "genome.fa.fai")):
+       subprocess.run(["samtools", "faidx", os.path.join(genome_dir, "lambda", "genome.fa")])
+    # Create a genome file
+    if w_lambda and not os.path.isfile(os.path.join(genome_dir, "lambda", "genome.bed")):
+       with open(os.path.join(genome_dir, "lambda", "genome.fa")) as in_f, open(os.path.join(genome_dir, "lambda", "genome.bed"),'w') as out_f:
+           for record in SeqIO.parse(in_f, 'fasta'):
+               out_f.write('{}\t0\t{}\n'.format(record.id, len(record)))
     # Combine lambda and genome file
     if w_lambda and not os.path.isfile(genome_file):
         combine_lambda_genome(genome_dir, genome)
@@ -181,7 +188,7 @@ def combine_lambda_genome(genome_dir, genome):
     logging.info("Appending lambda genome to current genome")
     genome_file = os.path.join(genome_dir, genome, "genome.fa")
     combined_file = os.path.join(genome_dir, genome, "genome.w_lambda.fa")
-    lambda_genome_file = os.path.join(genome_dir, genome, combined_file)
+    lambda_genome_file = os.path.join(genome_dir, "lambda", "genome.fa")
     with open(combined_file, 'w') as combined_out:
         with open(genome_file, 'r') as genome_in:
             for fasta in SeqIO.parse(genome_in, 'fasta'):
@@ -206,7 +213,7 @@ def main(args):
     logging.info("Given we need to take of the parent script, "
                  "running %d jobs in parallel" % threads)
     # Create lambda_dir
-    if args.w_lamba and not os.path.isdir(os.path.join(args.output_dir, "lambda")):
+    if args.w_lambda and not os.path.isdir(os.path.join(args.output_dir, "lambda")):
         os.mkdir(os.path.join(args.output_dir, "lambda"))
     # Run commands in parallel
     # Run in parallel
