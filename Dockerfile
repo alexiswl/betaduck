@@ -8,6 +8,12 @@ RUN apt-get -y install gcc
 RUN conda update -n base conda --yes
 RUN conda update --all --yes
 
+# Install samtools
+RUN conda install -c bioconda samtools=1.8 --yes
+
+# Install minimap2
+RUN conda install -c bioconda minimap2=2.13 --yes
+
 # Download poreduck
 RUN git clone -b dev https://github.com/alexiswl/betaduck.git
 WORKDIR ./betaduck
@@ -29,12 +35,6 @@ RUN pip install -e . --ignore-installed
 
 # Install deconcatenate fastqs
 RUN pip install ont-fastq-deconcatenate
-
-# Install samtools
-RUN conda install -c bioconda samtools=1.8 --yes
-
-# Install minimap2
-RUN conda install -c bioconda minimap2=2.13 --yes
 
 # Copy the entry point for the user
 COPY ./docker-entrypoint.sh /
