@@ -61,15 +61,19 @@ def generate_alignment(genome_dir, genome, index, input_fastq, alignment_file, m
     # Write to alignment_file
     # Write to sorted bam file and sort bam flie
     dev_null = open(os.devnull, 'w')
+    if not os.path.isdir(os.path.join(os.path.dirname(alignment_file), "unaligned")):
+        os.mkdir(os.path.join(os.path.dirname(alignment_file), "unaligned"))
+    alignment_file_no_alignment = os.path.join(os.path.dirname(alignment_file), "unaligned",
+                                               re.sub(".bam$", ".unaligned.bam", os.path.basename(alignment_file)))
     p1 = subprocess.Popen(minimap2_alignment_command,
                           stdout=subprocess.PIPE, stderr=dev_null)
-    p2 = subprocess.Popen(["samtools", "view", '-bu'],
+    p2 = subprocess.Popen(["samtools", "view", '-bu', '-F4', '-U', alignment_file_no_alignment],
                           stdin=p1.stdout,
                           stdout=subprocess.PIPE, stderr=dev_null)
     p1.stdout.close()
     if not w_lambda:
         alignment_file = os.path.join(os.path.dirname(alignment_file), genome,
-                                      os.path.basename(alignment_file))
+                                      re.sub(".bam", ".sorted.bam", os.path.basename(alignment_file)))
         p3 = subprocess.Popen(["samtools", "sort", "-o", alignment_file],
                               stdin=p2.stdout,
                               stdout=dev_null, stderr=dev_null)
@@ -77,12 +81,18 @@ def generate_alignment(genome_dir, genome, index, input_fastq, alignment_file, m
         out, err = p3.communicate()
         if not p3.returncode == 0:
             logging.info("BAM Alignment returned non-zero exit code for alignment file %s" % alignment_file)
+        # Generate index for alignment file
+        index_command = ["samtools", "index", alignment_file]
+        index_proc = subprocess.run(index_command, capture_output=True)
+        if not index_proc.returncode == 0:
+            logging.warning("Indexing of '%s' returned non-zero exit code" % ' '.join(index_command))
+            logging.warning("Stderr: %s" % index_proc.stderr.decode())
     else:
         # If w_lambda, pipe sort to stdout
         lambda_alignment_file = os.path.join(os.path.dirname(alignment_file), "lambda",
-                                             re.sub(".bam$", ".lambda.bam", os.path.basename(alignment_file)))
+                                             re.sub(".bam$", ".lambda.sorted.bam", os.path.basename(alignment_file)))
         alignment_file_no_lambda = os.path.join(os.path.dirname(alignment_file), genome,
-                                             re.sub(".bam$", ".lambda-filt.bam", os.path.basename(alignment_file)))
+                                             re.sub(".bam$", ".lambda-filt.sorted.bam", os.path.basename(alignment_file)))
         lambda_bed = os.path.join(genome_dir, "lambda", "genome.bed")
         p3 = subprocess.Popen(["samtools", "sort"],
                               stdin=p2.stdout,
@@ -95,7 +105,15 @@ def generate_alignment(genome_dir, genome, index, input_fastq, alignment_file, m
         p3.stdout.close()
         out, err = p4.communicate()
         if not p4.returncode == 0:
-            logging.info("BAM Alignment returned non-zero exit code for alignment file %s" % alignment_file)
+            logging.warning("BAM Alignment returned non-zero exit code for alignment file %s" % alignment_file)
+        # Generate index for alignment file(s)
+        logging.info("Generating indexes for %s and %s" % (lambda_alignment_file, alignment_file_no_lambda))
+        for alignment_file in [lambda_alignment_file, alignment_file_no_lambda]:
+            index_command = ["samtools", "index", alignment_file]
+            index_proc = subprocess.run(index_command, capture_output=True)
+            if not index_proc.returncode == 0:
+                logging.warning("Indexing of '%s' returned non-zero exit code" % ' '.join(index_command))
+                logging.warning("Stderr: %s" % index_proc.stderr.decode())
 
 
 # Check arguments
