@@ -36,6 +36,9 @@ RUN pip install -e . --ignore-installed
 # Install deconcatenate fastqs
 RUN pip install ont-fastq-deconcatenate
 
+# Install wub
+RUN pip install git+https://github.com/nanoporetech/wub.git
+
 # Copy the entry point for the user
 COPY ./docker-entrypoint.sh /
 

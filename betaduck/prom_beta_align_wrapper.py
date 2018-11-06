@@ -92,7 +92,7 @@ def generate_alignment(genome_dir, genome, index, input_fastq, alignment_file, m
         lambda_alignment_file = os.path.join(os.path.dirname(alignment_file), "lambda",
                                              re.sub(".bam$", ".lambda.sorted.bam", os.path.basename(alignment_file)))
         alignment_file_no_lambda = os.path.join(os.path.dirname(alignment_file), genome,
-                                             re.sub(".bam$", ".lambda-filt.sorted.bam", os.path.basename(alignment_file)))
+                                                re.sub(".bam$", ".lambda-filt.sorted.bam", os.path.basename(alignment_file)))
         lambda_bed = os.path.join(genome_dir, "lambda", "genome.bed")
         p3 = subprocess.Popen(["samtools", "sort"],
                               stdin=p2.stdout,
@@ -188,12 +188,13 @@ def get_index(genome_dir, genome, w_lambda):
                     os.path.join(genome_dir, "lambda", "genome.fa"))
     # Run fasta index (used as a bed file for later)
     if w_lambda and not os.path.isfile(os.path.join(genome_dir, "lambda", "genome.fa.fai")):
-       subprocess.run(["samtools", "faidx", os.path.join(genome_dir, "lambda", "genome.fa")])
+        subprocess.run(["samtools", "faidx", os.path.join(genome_dir, "lambda", "genome.fa")])
     # Create a genome file
     if w_lambda and not os.path.isfile(os.path.join(genome_dir, "lambda", "genome.bed")):
-       with open(os.path.join(genome_dir, "lambda", "genome.fa")) as in_f, open(os.path.join(genome_dir, "lambda", "genome.bed"),'w') as out_f:
-           for record in SeqIO.parse(in_f, 'fasta'):
-               out_f.write('{}\t0\t{}\n'.format(record.id, len(record)))
+        with open(os.path.join(genome_dir, "lambda", "genome.fa")) as in_f, \
+                open(os.path.join(genome_dir, "lambda", "genome.bed"),'w') as out_f:
+            for record in SeqIO.parse(in_f, 'fasta'):
+                out_f.write('{}\t0\t{}\n'.format(record.id, len(record)))
     # Combine lambda and genome file
     if w_lambda and not os.path.isfile(genome_file):
         combine_lambda_genome(genome_dir, genome)
@@ -218,6 +219,108 @@ def combine_lambda_genome(genome_dir, genome):
             fasta = SeqIO.read(genome_in, 'fasta')
             SeqIO.write(fasta, combined_out, "fasta")
     logging.info("Appending complete, combo file is in %s" % combined_file)
+
+
+def merge_bams(input_dir, genome, output_dir, output_prefix, w_lambda=False):
+    if w_lambda:
+        unaligned_output_prefix = re.sub('.lambda-filt.sorted.merged.bam$', '.sorted.merged.bam', output_prefix)
+        unaligned_output_prefix = re.sub('^%s_' % genome, "unaligned_", unaligned_output_prefix)
+    else:
+        unaligned_output_prefix = re.sub('.sorted.merged.bam$', '.merged.bam', output_prefix)
+        unaligned_output_prefix = re.sub('^%s_' % genome, "unaligned_", unaligned_output_prefix)
+
+    sorted_bam_files = sorted([os.path.join(input_dir, genome, bam)
+                               for bam in os.listdir(os.path.join(input_dir, genome))
+                               if bam.endswith(".sorted.bam")])
+    samtools_merge_command = ["samtools", "merge", "-f", os.path.join(output_dir, output_prefix)]
+    samtools_merge_command.extend(sorted_bam_files)
+
+    # Run merge command
+    logging.info("Merging %s bams: %s" % (genome, ' '.join(samtools_merge_command)))
+    samtools_merge_proc = subprocess.run(samtools_merge_command, capture_output=True)
+    if not samtools_merge_proc.returncode == 0:
+        logging.warning("Error, merging did not go smoothly")
+        logging.warning("Stderr: %s" % samtools_merge_proc.stderr.decode())
+
+    # Merge lambdas
+    if w_lambda:
+        lambda_output_prefix = re.sub('.lambda-filt.sorted.merged.bam$', '.sorted.merged.bam', output_prefix)
+        lambda_output_prefix = re.sub('^%s_' % genome, "lambda_", lambda_output_prefix)
+        sorted_bam_files = sorted([os.path.join(input_dir, "lambda", bam)
+                                   for bam in os.listdir(os.path.join(input_dir, "lambda"))
+                                   if bam.endswith(".sorted.bam")])
+        samtools_merge_command = ["samtools", "merge", "-f", os.path.join(output_dir, lambda_output_prefix)]
+        samtools_merge_command.extend(sorted_bam_files)
+        # Run merge command
+        logging.info("Merging lambda bams: %s" % ' '.join(samtools_merge_command))
+        samtools_merge_proc = subprocess.run(samtools_merge_command, capture_output=True)
+        if not samtools_merge_proc.returncode == 0:
+            logging.warning("Error, merging did not go smoothly")
+            logging.warning("Stderr: %s" % samtools_merge_proc.stderr.decode())
+
+    # Merge the unaligned bam files
+    sorted_bam_files = sorted([os.path.join(input_dir, "unaligned", bam)
+                               for bam in os.listdir(os.path.join(input_dir, genome))
+                               if bam.endswith(".bam")])
+    samtools_merge_command = ["samtools", "merge", "-f", os.path.join(output_dir, unaligned_output_prefix)]
+    samtools_merge_command.extend(sorted_bam_files)
+
+    # Run merge command
+    logging.info("Merging unaligned bams: %s" % ' '.join(samtools_merge_command))
+    samtools_merge_proc = subprocess.run(samtools_merge_command, capture_output=True)
+    if not samtools_merge_proc.returncode == 0:
+        logging.warning("Error, merging did not go smoothly")
+        logging.warning("Stderr: %s" % samtools_merge_proc.stderr.decode())
+
+
+def run_wubber(input_dir, genome_dir, genome, output_dir, qc_prefix, w_lambda=False):
+    # Get reference
+    reference = os.path.join(genome_dir, genome, "genome.fa")
+
+    # Run the wubber
+    """
+    bam_alignment_qc [-h] -f reference [-c region] [-n context_sizes] [-x]
+                        [-t bam_tag] [-q aqual] [-i qual_ints] [-r report_pdf]
+                        [-p results_pickle] [-Q]
+                        bam
+    """
+    bam_files = [bam_file
+                 for bam_file in os.listdir(input_dir)
+                 if bam_file.endswith(".merged.bam")]
+    for bam_file in bam_files:
+        if bam_file.startswith("lambda") and w_lambda:
+            bam_reference = os.path.join(genome_dir, "lambda", "genome.fa")
+        else:
+            bam_reference = reference
+        bam_prefix = '_'.join([bam_file.rsplit("_", 3)[0], qc_prefix])
+        bam_alignment_qc_command = ["bam_alignment_qc",
+                                    "-f", bam_reference,
+                                    "-Q", '-p', os.path.join(output_dir, '.'.join([bam_prefix, "pickle"])),
+                                    "-r", os.path.join(output_dir, '.'.join([bam_prefix, "report", "pdf"])),
+                                    bam_file]
+        logging.info("Performing bam alignment qc: %s" % ' '.join(bam_alignment_qc_command))
+        bam_alignment_qc_proc = subprocess.run(bam_alignment_qc_command, capture_output=True)
+        if not bam_alignment_qc_proc.returncode == 0:
+            logging.warning("Bam QC returned non-zero exit code")
+            logging.warning("Stderr: %s" % bam_alignment_qc_proc.stderr.decode())
+
+    # Run multiqc using all the pickle files
+    pickles = [os.path.join(output_dir, pickle)
+               for pickle in os.listdir(output_dir)
+               if pickle.endswith(".pickle")]
+    """
+    usage: bam_multi_qc [-h] [-r report_pdf] [-x]
+                    [input_pickles [input_pickles ...]]
+    """
+    bam_multi_qc_command = ["bam_multi_qc",
+                            '-r', os.path.join(output_dir, qc_prefix + ".multiqc.pdf")]
+    bam_multi_qc_command.extend(pickles)
+    # Write bam
+    logging.info("Performing multiqc on bam alignments %s" % ' '.join(bam_multi_qc_command))
+    bam_multi_qc_proc = subprocess.run(bam_multi_qc_command, capture_output=True)
+    if not bam_multi_qc_proc.returncode == 0:
+        logging.warning("Bam multiqc returned non-zero exit code")
+        logging.warning("Stderr: %s" % bam_multi_qc_proc.stderr.deocde())
 
 
 def main(args):
@@ -248,7 +351,26 @@ def main(args):
             parameter_input = iterator[item]
             success = item.result()
 
+    # Merge the bam files
+    flowcell, rnumber = alignment_files[0].split("_", 2)[:2]
+    if args.w_lambda:
+        alignment_file_prefix = '_'.join([args.genome, flowcell, rnumber]) + ".lambda-filt.sorted.merged.bam"
+    else:
+        alignment_file_prefix = '_'.join([args.genome, flowcell, rnumber]) + ".sorted.merged.bam"
+    if not os.path.isdir(os.path.join(args.output_dir, "merged")):
+        os.mkdir(os.path.join(args.output_dir, "merged"))
+    # Merge bams
+    merge_bams(args.output_dir, args.genome, os.path.join(args.output_dir, "merged"),
+               alignment_file_prefix, w_lambda=args.w_lambda)
+    # Create QC dir
+    if not os.path.isdir(os.path.join(args.output_dir, "wub")):
+        os.mkdir(os.path.join(args.output_dir, "wub"))
+    # Run wubqc
+    qc_prefix = '_'.join([args.genome, flowcell, rnumber])
+    run_wubber(args.output_dir, args.genome_dir, args.genome,
+               os.path.join(args.output_dir, "wub"), qc_prefix,
+               w_lambda=args.w_lambda)
+
 
 if __name__ == "__main__":
     main()
-
