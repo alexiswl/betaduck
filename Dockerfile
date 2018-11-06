@@ -2,7 +2,7 @@ FROM continuumio/miniconda3:latest
 
 # Install other dependencies (gcc)
 RUN apt-get update
-RUN apt-get -y install gcc zlib1g-dev
+RUN apt-get -y install gcc zlib1g-dev liblzma-dev libcurl-dev libssl-dev
 
 # Update conda
 RUN conda update -n base conda --yes
