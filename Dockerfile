@@ -14,9 +14,6 @@ RUN conda install -c bioconda samtools=1.9 --yes
 # Install minimap2
 RUN conda install -c bioconda minimap2=2.13 --yes
 
-# Install wub
-RUN conda install -c bioconda wub --yes
-
 # Download poreduck
 RUN git clone -b dev https://github.com/alexiswl/betaduck.git
 WORKDIR ./betaduck
@@ -38,6 +35,9 @@ RUN pip install -e . --ignore-installed
 
 # Install deconcatenate fastqs
 RUN pip install ont-fastq-deconcatenate
+
+# Install wub
+RUN pip install git+https://github.com/nanoporetech/wub.git
 
 # Copy the entry point for the user
 COPY ./docker-entrypoint.sh /
