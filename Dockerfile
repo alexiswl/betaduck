@@ -15,7 +15,7 @@ RUN conda install -c bioconda samtools=1.9 --yes
 RUN conda install -c bioconda minimap2=2.13 --yes
 
 # Install wub
-RUN conda install -c bioconda wub
+RUN conda install -c bioconda wub --yes
 
 # Download poreduck
 RUN git clone -b dev https://github.com/alexiswl/betaduck.git
