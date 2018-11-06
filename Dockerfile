@@ -2,7 +2,7 @@ FROM continuumio/miniconda3:latest
 
 # Install other dependencies (gcc)
 RUN apt-get update
-RUN apt-get -y install gcc make zlib1g-dev libbz2-dev 
+RUN apt-get -y install gcc make zlib1g-dev libbz2-dev liblzma-dev libcurl4-gnutls-dev libssl-dev
 
 # Update conda
 RUN conda update -n base conda --yes
@@ -13,6 +13,9 @@ RUN conda install -c bioconda samtools=1.9 --yes
 
 # Install minimap2
 RUN conda install -c bioconda minimap2=2.13 --yes
+
+# Install wub
+RUN conda install -c bioconda wub
 
 # Download poreduck
 RUN git clone -b dev https://github.com/alexiswl/betaduck.git
@@ -35,9 +38,6 @@ RUN pip install -e . --ignore-installed
 
 # Install deconcatenate fastqs
 RUN pip install ont-fastq-deconcatenate
-
-# Install wub
-RUN pip install git+https://github.com/nanoporetech/wub.git
 
 # Copy the entry point for the user
 COPY ./docker-entrypoint.sh /
