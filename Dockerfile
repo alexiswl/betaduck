@@ -2,7 +2,7 @@ FROM continuumio/miniconda3:latest
 
 # Install other dependencies (gcc)
 RUN apt-get update
-RUN apt-get -y install gcc
+RUN apt-get -y install gcc make
 
 # Update conda
 RUN conda update -n base conda --yes
