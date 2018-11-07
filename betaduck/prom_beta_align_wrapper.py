@@ -37,7 +37,7 @@ class Sample:
                                   for fastq_file in self.fastq_files]
         self.flowcell, self.rnumber = os.path.basename(os.path.normpath(self.fastq_files[0])).split("_", 2)[:2]
         self.w_lambda = genome.w_lambda
-        self.sample_prefix = '_'.join([genome, self.flowcell, self.rnumber])
+        self.sample_prefix = '_'.join([genome.name, self.flowcell, self.rnumber])
         self.unaligned_merged_bam_file = os.path.join(output_dir, 'merged',
                                                       '_'.join(['unaligned', self.flowcell, self.rnumber])
                                                       + ".sorted.merged.bam")
