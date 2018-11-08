@@ -69,6 +69,7 @@ class SubFolder:
     def __init__(self, fastq_file, output_dir, genome, w_lambda=False):
         self.fastq_path = fastq_file
         self.prefix = re.sub(".fastq.gz$", "", os.path.basename(os.path.normpath(fastq_file)))
+        self.w_lambda = w_lambda
         if w_lambda:
             self.index = genome.host_w_lambda_minimap2_index
             self.host_aligned = os.path.join(output_dir, genome.name, self.prefix+".lambda-filt.sorted.bam")
