@@ -35,7 +35,7 @@ class Sample:
         self.genome = genome
         self.alignment_objects = [SubFolder(fastq_file, output_dir, genome)
                                   for fastq_file in self.fastq_files]
-        self.flowcell, self.rnumber = os.path.basename(os.path.normpath(self.fastq_files[0])).split("_", 2)[:2]
+        _, self.flowcell, self.rnumber = re.sub(".fastq.gz", "", os.path.basename(os.path.normpath(self.fastq_files[0]))).split("_", 3)
         self.w_lambda = genome.w_lambda
         self.sample_prefix = '_'.join([genome.name, self.flowcell, self.rnumber])
         self.unaligned_merged_bam_file = os.path.join(output_dir, 'merged',
@@ -54,7 +54,6 @@ class Sample:
             self.merged_bam_files = [self.host_merged_bam_file, self.unaligned_merged_bam_file, self.lambda_merged_bam_file]
             self.merged_reference_names = [self.genome.name, self.genome.name, "lambda"]
             self.merged_references = [genome.host_genome_path, genome.host_genome_path, genome.lambda_genome_path]
-
         else:
             self.host_merged_bam_file = os.path.join(output_dir, 'merged',
                                                      '_'.join([genome.name, self.flowcell, self.rnumber])
@@ -281,7 +280,7 @@ def merge_bams(sample):
     samtools_merge_command.extend(sample.host_alignment_files)
 
     # Run merge command
-    logging.info("Merging %s bams" % len(sample.host_alignment_files))
+    logging.info("Merging %d bams" % len(sample.host_alignment_files))
     samtools_merge_proc = subprocess.run(samtools_merge_command, capture_output=True)
     if not samtools_merge_proc.returncode == 0:
         logging.warning("Error, merging did not go smoothly")
@@ -292,7 +291,7 @@ def merge_bams(sample):
         samtools_merge_command = ["samtools", "merge", "-f", sample.lambda_merged_bam_file]
         samtools_merge_command.extend(sample.lambda_alignment_files)
         # Run merge command
-        logging.info("Merging lambda bams: %s" % ' '.join(samtools_merge_command))
+        logging.info("Merging %d bams:" % len(sample.lambda_alignment_files))
         # noinspection PyArgumentList
         samtools_merge_proc = subprocess.run(samtools_merge_command, capture_output=True)
         if not samtools_merge_proc.returncode == 0:
@@ -303,7 +302,7 @@ def merge_bams(sample):
     samtools_merge_command.extend(sample.unaligned_files)
 
     # Run merge command
-    logging.info("Merging unaligned bams: %s" % ' '.join(samtools_merge_command))
+    logging.info("Merging %d unaligned bams" % len(sample.unaligned_files))
     # noinspection PyArgumentList
     samtools_merge_proc = subprocess.run(samtools_merge_command, capture_output=True)
     if not samtools_merge_proc.returncode == 0:
