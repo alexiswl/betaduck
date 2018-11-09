@@ -75,7 +75,7 @@ class SubFolder:
             self.lambda_aligned = os.path.join(output_dir, 'lambda', self.prefix+".lambda.sorted.bam")
         else:
             self.index = genome.host_minimap2_index
-            self.host_aligned = os.path.join(output_dir, genome.name, self.prefix + ".lambda-filt.sorted.bam")
+            self.host_aligned = os.path.join(output_dir, genome.name, self.prefix + ".sorted.bam")
             self.lambda_aligned = None
         self.unaligned = os.path.join(output_dir, "unaligned", self.prefix+".unaligned.bam")
 
