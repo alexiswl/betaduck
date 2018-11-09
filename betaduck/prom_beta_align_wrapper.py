@@ -33,10 +33,10 @@ class Sample:
     def __init__(self, input_dir, output_dir, genome):
         self.fastq_files = collect_fastqs(input_dir)
         self.genome = genome
-        self.alignment_objects = [SubFolder(fastq_file, output_dir, genome)
+        self.w_lambda = genome.w_lambda
+        self.alignment_objects = [SubFolder(fastq_file, output_dir, genome, w_lambda=self.w_lambda)
                                   for fastq_file in self.fastq_files]
         _, self.flowcell, self.rnumber = re.sub(".fastq.gz", "", os.path.basename(os.path.normpath(self.fastq_files[0]))).split("_", 3)
-        self.w_lambda = genome.w_lambda
         self.sample_prefix = '_'.join([genome.name, self.flowcell, self.rnumber])
         self.unaligned_merged_bam_file = os.path.join(output_dir, 'merged',
                                                       '_'.join(['unaligned', self.flowcell, self.rnumber])
@@ -76,7 +76,7 @@ class SubFolder:
             self.lambda_aligned = os.path.join(output_dir, 'lambda', self.prefix+".lambda.sorted.bam")
         else:
             self.index = genome.host_minimap2_index
-            self.host_aligned = os.path.join(output_dir, genome.name, self.prefix + ".lambda-filt.sorted.bam")
+            self.host_aligned = os.path.join(output_dir, genome.name, self.prefix + ".sorted.bam")
             self.lambda_aligned = None
         self.unaligned = os.path.join(output_dir, "unaligned", self.prefix+".unaligned.bam")
 
