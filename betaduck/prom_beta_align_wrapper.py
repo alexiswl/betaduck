@@ -69,6 +69,7 @@ class SubFolder:
         self.fastq_path = fastq_file
         self.prefix = re.sub(".fastq.gz$", "", os.path.basename(os.path.normpath(fastq_file)))
         self.w_lambda = w_lambda
+        self.genome = genome
         if w_lambda:
             self.index = genome.host_w_lambda_minimap2_index
             self.host_aligned = os.path.join(output_dir, genome.name, self.prefix+".lambda-filt.sorted.bam")
@@ -320,9 +321,10 @@ def run_wubber(sample, qc_dir):
     """
     for merged_bam_file, sample_reference in zip(sample.merged_bam_files, sample.merged_references):
         qc_prefix = os.path.basename(merged_bam_file).rsplit("_", 3)[0]
+        # noinspection PyTypeChecker
         bam_alignment_qc_command = ["bam_alignment_qc",
                                     "-f", sample_reference,
-                                    "-Q", '-p', os.path.join(qc_dir, qc_prefix + ".pickle"),
+                                    "-Q", '-p', os.path.join(qc_dir, qc_prefix + '.pickle'),
                                     "-r", os.path.join(qc_dir, '.'.join([qc_prefix, "report", "pdf"])),
                                     merged_bam_file]
         logging.info("Performing bam alignment qc: %s" % ' '.join(bam_alignment_qc_command))
