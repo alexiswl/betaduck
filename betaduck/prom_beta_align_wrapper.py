@@ -36,7 +36,8 @@ class Sample:
         self.w_lambda = genome.w_lambda
         self.alignment_objects = [SubFolder(fastq_file, output_dir, genome, w_lambda=self.w_lambda)
                                   for fastq_file in self.fastq_files]
-        _, self.flowcell, self.rnumber = re.sub(".fastq.gz", "", os.path.basename(os.path.normpath(self.fastq_files[0]))).split("_", 3)
+        _, self.flowcell, self.rnumber = re.sub(".fastq.gz", "",
+                                                os.path.basename(os.path.normpath(self.fastq_files[0]))).split("_", 3)
         self.sample_prefix = '_'.join([genome.name, self.flowcell, self.rnumber])
         self.unaligned_merged_bam_file = os.path.join(output_dir, 'merged',
                                                       '_'.join(['unaligned', self.flowcell, self.rnumber])
@@ -51,7 +52,8 @@ class Sample:
                                                        + ".sorted.merged.bam")
             self.host_alignment_files = [align.host_aligned for align in self.alignment_objects]
             self.lambda_alignment_files = [align.lambda_aligned for align in self.alignment_objects]
-            self.merged_bam_files = [self.host_merged_bam_file, self.unaligned_merged_bam_file, self.lambda_merged_bam_file]
+            self.merged_bam_files = [self.host_merged_bam_file, self.unaligned_merged_bam_file,
+                                     self.lambda_merged_bam_file]
             self.merged_reference_names = [self.genome.name, self.genome.name, "lambda"]
             self.merged_references = [genome.host_genome_path, genome.host_genome_path, genome.lambda_genome_path]
         else:
@@ -107,6 +109,7 @@ def generate_index(index_file, genome_file):
     minimap2_index_command = ["minimap2", "-x", "map-ont",
                               "-d", index_file, genome_file]
     # Run command
+    # noinspection PyArgumentList
     minimap2_index_proc = subprocess.run(minimap2_index_command, capture_output=True)
 
     # Check output of command
@@ -152,6 +155,7 @@ def generate_alignment(subfolder, md, cs):
             logging.info("BAM Alignment returned non-zero exit code for alignment file %s" % subfolder.host_aligned)
         # Generate index for alignment file
         index_command = ["samtools", "index", subfolder.host_aligned]
+        # noinspection PyArgumentList
         index_proc = subprocess.run(index_command, capture_output=True)
         if not index_proc.returncode == 0:
             logging.warning("Indexing of '%s' returned non-zero exit code" % ' '.join(index_command))
@@ -159,8 +163,8 @@ def generate_alignment(subfolder, md, cs):
     else:
         # If w_lambda, pipe sort to stdout
         p3 = subprocess.Popen(["samtools", "sort"],
-                               stdin=p2.stdout,
-                               stdout=subprocess.PIPE, stderr=dev_null)
+                              stdin=p2.stdout,
+                              stdout=subprocess.PIPE, stderr=dev_null)
         p2.stdout.close()
         p4 = subprocess.Popen(["samtools", "view", "-b", "-L", subfolder.genome.lambda_genome_bed,
                                "-U", subfolder.host_aligned, "-o", subfolder.lambda_aligned],
@@ -174,6 +178,7 @@ def generate_alignment(subfolder, md, cs):
         logging.info("Generating indexes for %s and %s" % (subfolder.lambda_aligned, subfolder.host_aligned))
         for alignment_file in [subfolder.lambda_aligned, subfolder.host_aligned]:
             index_command = ["samtools", "index", alignment_file]
+            # noinspection PyArgumentList
             index_proc = subprocess.run(index_command, capture_output=True)
             if not index_proc.returncode == 0:
                 logging.warning("Indexing of '%s' returned non-zero exit code" % ' '.join(index_command))
@@ -277,38 +282,35 @@ def combine_lambda_genome(genome):
 
 
 def merge_bams(sample):
-    samtools_merge_command = ["samtools", "merge", "-f", sample.host_merged_bam_file]
-    samtools_merge_command.extend(sample.host_alignment_files)
+    # Get list of files to merge into and files to be merged
+    merged_bam_file_list = [sample.host_merged_bam_file, sample.unaligned_merged_bam_file]
+    alignment_file_list = [sample.host_alignment_files, sample.unaligned_files]
 
-    # Run merge command
-    logging.info("Merging %d bams" % len(sample.host_alignment_files))
-    samtools_merge_proc = subprocess.run(samtools_merge_command, capture_output=True)
-    if not samtools_merge_proc.returncode == 0:
-        logging.warning("Error, merging did not go smoothly")
-        logging.warning("Stderr: %s" % samtools_merge_proc.stderr.decode())
-
-    # Merge lambdas
     if sample.w_lambda:
-        samtools_merge_command = ["samtools", "merge", "-f", sample.lambda_merged_bam_file]
-        samtools_merge_command.extend(sample.lambda_alignment_files)
-        # Run merge command
-        logging.info("Merging %d bams:" % len(sample.lambda_alignment_files))
+        merged_bam_file_list.append(sample.lambda_merged_bam_file)
+        alignment_file_list.append(sample.lambda_alignment_files)
+
+    # Run merge command for each in list of merged and files to be merged
+    for merged_file, alignment_files in zip(merged_bam_file_list, alignment_file_list):
+        logging.info("Merging %d bams into %s" % (len(alignment_files), merged_file))
+        samtools_merge_command = ["samtools", "merge", "-f", merged_file]
+        samtools_merge_command.extend(alignment_files)
         # noinspection PyArgumentList
         samtools_merge_proc = subprocess.run(samtools_merge_command, capture_output=True)
+        # Merge processes
         if not samtools_merge_proc.returncode == 0:
             logging.warning("Error, merging did not go smoothly")
+            logging.warning("Command: %s" % ' '.join(samtools_merge_command))
             logging.warning("Stderr: %s" % samtools_merge_proc.stderr.decode())
-
-    samtools_merge_command = ["samtools", "merge", "-f", sample.unaligned_merged_bam_file]
-    samtools_merge_command.extend(sample.unaligned_files)
-
-    # Run merge command
-    logging.info("Merging %d unaligned bams" % len(sample.unaligned_files))
-    # noinspection PyArgumentList
-    samtools_merge_proc = subprocess.run(samtools_merge_command, capture_output=True)
-    if not samtools_merge_proc.returncode == 0:
-        logging.warning("Error, merging did not go smoothly")
-        logging.warning("Stderr: %s" % samtools_merge_proc.stderr.decode())
+        # Index merged bam files
+        samtools_index_command = ['samtools', 'index', merged_file]
+        # noinspection PyArgumentList
+        samtools_index_proc = subprocess.run(samtools_index_command, capture_output=True)
+        # Merge processes
+        if not samtools_index_proc.returncode == 0:
+            logging.warning("Error, indexing of merged bam did not go smoothly")
+            logging.warning("Command: %s" % ' '.join(samtools_index_command))
+            logging.warning("Stderr: %s" % samtools_index_proc.stderr.decode())
 
 
 def run_wubber(sample, qc_dir):
@@ -324,10 +326,11 @@ def run_wubber(sample, qc_dir):
         # noinspection PyTypeChecker
         bam_alignment_qc_command = ["bam_alignment_qc.py",
                                     "-f", sample_reference,
-                                    "-Q", '-p', os.path.join(qc_dir, qc_prefix + '.pickle'),
+                                    '-p', os.path.join(qc_dir, qc_prefix + '.pickle'),
                                     "-r", os.path.join(qc_dir, '.'.join([qc_prefix, "report", "pdf"])),
-                                    merged_bam_file]
+                                    "-Q", merged_bam_file]
         logging.info("Performing bam alignment qc: %s" % ' '.join(bam_alignment_qc_command))
+        # noinspection PyArgumentList
         bam_alignment_qc_proc = subprocess.run(bam_alignment_qc_command, capture_output=True)
         if not bam_alignment_qc_proc.returncode == 0:
             logging.warning("Bam QC returned non-zero exit code")
@@ -346,10 +349,11 @@ def run_wubber(sample, qc_dir):
     bam_multi_qc_command.extend(pickles)
     # Write bam
     logging.info("Performing multiqc on bam alignments %s" % ' '.join(bam_multi_qc_command))
+    # noinspection PyArgumentList
     bam_multi_qc_proc = subprocess.run(bam_multi_qc_command, capture_output=True)
     if not bam_multi_qc_proc.returncode == 0:
         logging.warning("Bam multiqc returned non-zero exit code")
-        logging.warning("Stderr: %s" % bam_multi_qc_proc.stderr.deocde())
+        logging.warning("Stderr: %s" % bam_multi_qc_proc.stderr.decode())
 
 
 def main(args):
