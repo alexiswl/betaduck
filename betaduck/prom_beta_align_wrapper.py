@@ -324,7 +324,7 @@ def run_wubber(sample, qc_dir):
     for merged_bam_file, sample_reference in zip(sample.merged_bam_files, sample.merged_references):
         qc_prefix = os.path.basename(merged_bam_file).rsplit("_", 3)[0]
         # noinspection PyTypeChecker
-        bam_alignment_qc_command = ["bam_alignment_qc.py",
+        bam_alignment_qc_command = ["bam_alignment_qc.py", "-x",
                                     "-f", sample_reference,
                                     '-p', os.path.join(qc_dir, qc_prefix + '.pickle'),
                                     "-r", os.path.join(qc_dir, '.'.join([qc_prefix, "report", "pdf"])),
