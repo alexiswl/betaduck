@@ -323,20 +323,25 @@ def run_wubber(sample, qc_dir):
     """
     for merged_bam_file, sample_reference in zip(sample.merged_bam_files, sample.merged_references):
         qc_prefix = os.path.basename(merged_bam_file).rsplit("_", 3)[0]
+        # Softlink bam file to prefix so naming is right in pickle (for multiqc downstream)
+        linked_bam_file = os.path.join(os.path.dirname(merged_bam_file), qc_prefix)
+        os.symlink(merged_bam_file, linked_bam_file)
         # noinspection PyTypeChecker
         bam_alignment_qc_command = ["bam_alignment_qc.py", "-x",
                                     "-f", sample_reference,
                                     '-p', os.path.join(qc_dir, qc_prefix + '.pickle'),
                                     "-r", os.path.join(qc_dir, '.'.join([qc_prefix, "report", "pdf"])),
-                                    "-Q", merged_bam_file]
+                                    "-Q", linked_bam_file]
         logging.info("Performing bam alignment qc: %s" % ' '.join(bam_alignment_qc_command))
         # noinspection PyArgumentList
         bam_alignment_qc_proc = subprocess.run(bam_alignment_qc_command, capture_output=True)
         if not bam_alignment_qc_proc.returncode == 0:
             logging.warning("Bam QC returned non-zero exit code")
             logging.warning("Stderr: %s" % bam_alignment_qc_proc.stderr.decode())
+        # Unlink bam file after completion of the command
+        os.unlink(linked_bam_file)
 
-    # Run multiqc using all the pickle files
+    # Run multiqc using all the generated pickle files in the directory.
     pickles = [os.path.join(qc_dir, pickle)
                for pickle in os.listdir(qc_dir)
                if pickle.endswith(".pickle")]
