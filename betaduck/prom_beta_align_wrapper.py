@@ -326,6 +326,7 @@ def run_wubber(sample, qc_dir):
         # Softlink bam file to prefix so naming is right in pickle (for multiqc downstream)
         linked_bam_file = os.path.join(os.path.dirname(merged_bam_file), qc_prefix)
         os.symlink(merged_bam_file, linked_bam_file)
+        os.symlink(merged_bam_file+".bai", linked_bam_file+".bai")
         # noinspection PyTypeChecker
         bam_alignment_qc_command = ["bam_alignment_qc.py", "-x",
                                     "-f", sample_reference,
@@ -340,6 +341,7 @@ def run_wubber(sample, qc_dir):
             logging.warning("Stderr: %s" % bam_alignment_qc_proc.stderr.decode())
         # Unlink bam file after completion of the command
         os.unlink(linked_bam_file)
+        os.unlink(linked_bam_file+".bai")
 
     # Run multiqc using all the generated pickle files in the directory.
     pickles = [os.path.join(qc_dir, pickle)
