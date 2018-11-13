@@ -76,11 +76,20 @@ class SubFolder:
             self.index = genome.host_w_lambda_minimap2_index
             self.host_aligned = os.path.join(output_dir, genome.name, self.prefix+".lambda-filt.sorted.bam")
             self.lambda_aligned = os.path.join(output_dir, 'lambda', self.prefix+".lambda.sorted.bam")
+            self.host_pickle = os.path.join(output_dir, 'wub', self.prefix+".lambda-filt.pickle")
+            self.lambda_pickle = os.path.join(output_dir, 'wub', self.prefix+".lambda.pickle")
+            self.host_report = os.path.join(output_dir, 'wub', self.prefix+".lambda-filt.pdf")
+            self.lambda_report = os.path.join(output_dir, 'wub', self.prefix+".lambda.pdf")
         else:
+            self.host_pickle = os.path.join(output_dir, 'wub', self.prefix+".pickle")
+            self.host_report = os.path.join(output_dir, 'wub', self.prefix+".pdf")
             self.index = genome.host_minimap2_index
             self.host_aligned = os.path.join(output_dir, genome.name, self.prefix + ".sorted.bam")
             self.lambda_aligned = None
+
         self.unaligned = os.path.join(output_dir, "unaligned", self.prefix+".unaligned.bam")
+        self.unaligned_pickle = os.path.join(output_dir, 'wub', self.prefix+".unaligned.pickle")
+        self.unaligned_report = os.path.join(output_dir, 'wub', self.prefix+".unaligned.pdf")
 
 
 logging.basicConfig(level=logging.INFO,
@@ -183,6 +192,52 @@ def generate_alignment(subfolder, md, cs):
             if not index_proc.returncode == 0:
                 logging.warning("Indexing of '%s' returned non-zero exit code" % ' '.join(index_command))
                 logging.warning("Stderr: %s" % index_proc.stderr.decode())
+
+
+# Generate pickle for wub
+def generate_pickle(subfolder):
+    # Host
+    bam_alignment_qc_command = ["bam_alignment_qc.py", "-x",
+                                "-f", subfolder.genome.host_genome_path,
+                                '-p', subfolder.host_pickle,
+                                "-r", subfolder.host_report,
+                                '-t', subfolder.genome.name,
+                                "-Q", subfolder.host_aligned]
+    logging.info("Performing bam alignment qc: %s" % ' '.join(bam_alignment_qc_command))
+    # noinspection PyArgumentList
+    bam_alignment_qc_proc = subprocess.run(bam_alignment_qc_command, capture_output=True)
+    if not bam_alignment_qc_proc.returncode == 0:
+        logging.warning("Bam QC returned non-zero exit code: %s" % bam_alignment_qc_command)
+        logging.warning("Stderr: %s" % bam_alignment_qc_proc.stderr.decode())
+
+    # Lambda
+    if subfolder.w_lambda:
+        bam_alignment_qc_command = ["bam_alignment_qc.py", "-x",
+                                    "-f", subfolder.genome.lambda_genome_path,
+                                    '-p', subfolder.lambda_pickle,
+                                    "-r", subfolder.lambda_report,
+                                    '-t', "lambda",
+                                    "-Q", subfolder.lambda_aligned]
+        logging.info("Performing bam alignment qc: %s" % ' '.join(bam_alignment_qc_command))
+        # noinspection PyArgumentList
+        bam_alignment_qc_proc = subprocess.run(bam_alignment_qc_command, capture_output=True)
+        if not bam_alignment_qc_proc.returncode == 0:
+            logging.warning("Bam QC returned non-zero exit code: %s" % bam_alignment_qc_command)
+            logging.warning("Stderr: %s" % bam_alignment_qc_proc.stderr.decode())
+
+    # Unaligned
+    bam_alignment_qc_command = ["bam_alignment_qc.py", "-x",
+                                "-f", subfolder.genome.host_genome_path,
+                                '-p', subfolder.unaligned_pickle,
+                                "-r", subfolder.unaligned_report,
+                                '-t', subfolder.genome.name,
+                                "-Q", subfolder.unaligned]
+    logging.info("Performing bam alignment qc: %s" % ' '.join(bam_alignment_qc_command))
+    # noinspection PyArgumentList
+    bam_alignment_qc_proc = subprocess.run(bam_alignment_qc_command, capture_output=True)
+    if not bam_alignment_qc_proc.returncode == 0:
+        logging.warning("Bam QC returned non-zero exit code: %s" % bam_alignment_qc_command)
+        logging.warning("Stderr: %s" % bam_alignment_qc_proc.stderr.decode())
 
 
 # Check arguments
@@ -313,36 +368,7 @@ def merge_bams(sample):
             logging.warning("Stderr: %s" % samtools_index_proc.stderr.decode())
 
 
-def run_wubber(sample, qc_dir):
-    # Run the wubber
-    """
-    bam_alignment_qc [-h] -f reference [-c region] [-n context_sizes] [-x]
-                        [-t bam_tag] [-q aqual] [-i qual_ints] [-r report_pdf]
-                        [-p results_pickle] [-Q]
-                        bam
-    """
-    for merged_bam_file, sample_reference in zip(sample.merged_bam_files, sample.merged_references):
-        qc_prefix = os.path.basename(merged_bam_file).rsplit("_", 3)[0]
-        # Softlink bam file to prefix so naming is right in pickle (for multiqc downstream)
-        linked_bam_file = os.path.join(os.path.dirname(merged_bam_file), qc_prefix)
-        os.symlink(merged_bam_file, linked_bam_file)
-        os.symlink(merged_bam_file+".bai", linked_bam_file+".bai")
-        # noinspection PyTypeChecker
-        bam_alignment_qc_command = ["bam_alignment_qc.py", "-x",
-                                    "-f", sample_reference,
-                                    '-p', os.path.join(qc_dir, qc_prefix + '.pickle'),
-                                    "-r", os.path.join(qc_dir, '.'.join([qc_prefix, "report", "pdf"])),
-                                    "-Q", linked_bam_file]
-        logging.info("Performing bam alignment qc: %s" % ' '.join(bam_alignment_qc_command))
-        # noinspection PyArgumentList
-        bam_alignment_qc_proc = subprocess.run(bam_alignment_qc_command, capture_output=True)
-        if not bam_alignment_qc_proc.returncode == 0:
-            logging.warning("Bam QC returned non-zero exit code")
-            logging.warning("Stderr: %s" % bam_alignment_qc_proc.stderr.decode())
-        # Unlink bam file after completion of the command
-        os.unlink(linked_bam_file)
-        os.unlink(linked_bam_file+".bai")
-
+def run_wubber_multiqc(sample, qc_dir):
     # Run multiqc using all the generated pickle files in the directory.
     pickles = [os.path.join(qc_dir, pickle)
                for pickle in os.listdir(qc_dir)
@@ -403,8 +429,17 @@ def main(args):
     if not os.path.isdir(qc_dir):
         os.mkdir(qc_dir)
 
-    # Run wubqc
-    run_wubber(sample, qc_dir)
+    # Run wubqc in parallel
+    # Run in parallel
+    with concurrent.futures.ThreadPoolExecutor(max_workers=threads) as executor:
+        iterator = {executor.submit(generate_pickle, subfolder):
+                        subfolder for subfolder in sample.alignment_objects}
+        for item in concurrent.futures.as_completed(iterator):
+            parameter_input = iterator[item]
+            success = item.result()
+
+    # Run multiqc
+    run_wubber_multiqc(sample, qc_dir)
 
 
 if __name__ == "__main__":
