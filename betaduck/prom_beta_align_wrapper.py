@@ -255,10 +255,10 @@ def generate_pickle(subfolder):
                                 "-Q", subfolder.unaligned]
     logging.info("Performing bam alignment qc: %s" % ' '.join(bam_alignment_qc_command))
     # noinspection PyArgumentList
-    bam_alignment_qc_proc = subprocess.run(bam_alignment_qc_command, capture_output=True)
-    if not bam_alignment_qc_proc.returncode == 0:
-        logging.warning("Bam QC returned non-zero exit code: %s" % bam_alignment_qc_command)
-        logging.warning("Stderr: %s" % bam_alignment_qc_proc.stderr.decode())
+    #bam_alignment_qc_proc = subprocess.run(bam_alignment_qc_command, capture_output=True)
+    #if not bam_alignment_qc_proc.returncode == 0:
+    #    logging.warning("Bam QC returned non-zero exit code: %s" % bam_alignment_qc_command)
+    #    logging.warning("Stderr: %s" % bam_alignment_qc_proc.stderr.decode())
 
 
 # Check arguments
@@ -392,8 +392,8 @@ def merge_bams(sample):
 def merge_pickles(sample):
     logging.info("Merging pickles")
     # Get list of files to merge into and files to be merged
-    merged_pickle_file_list = [sample.host_merged_pickle_file, sample.unaligned_merged_pickle_file]
-    alignment_pickle_list = [sample.host_alignment_pickles, sample.unaligned_pickles]
+    merged_pickle_file_list = [sample.host_merged_pickle_file]
+    alignment_pickle_list = [sample.host_alignment_pickles]
 
     if sample.w_lambda:
         merged_pickle_file_list.append(sample.lambda_merged_pickle_file)
@@ -405,7 +405,7 @@ def merge_pickles(sample):
         # Merge pickles
         merged_pickle = wub.util.misc.merge_pickles(loaded_pickles)
         # Dump merged pickle
-        wub.util.misc.dump(obj=merged_pickle, fname=merged_file)
+        wub.util.misc.pickle_dump(obj=merged_pickle, fname=merged_file)
 
 
 def run_wubber_multiqc(sample, qc_dir):
