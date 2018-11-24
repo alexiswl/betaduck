@@ -401,7 +401,9 @@ def merge_pickles(sample):
 
     for merged_file, alignment_files in zip(merged_pickle_file_list, alignment_pickle_list):
         # Import pickles
-        loaded_pickles = [wub.util.misc.pickle_load(pickle) for pickle in alignment_files]
+        loaded_pickles = [wub.util.misc.pickle_load(pickle)
+                          for pickle in alignment_files
+                          if os.path.isfile(pickle)]
         # Merge pickles
         merged_pickle = wub.util.misc.merge_pickles(loaded_pickles)
         # Dump merged pickle
