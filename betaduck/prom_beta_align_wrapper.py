@@ -8,6 +8,7 @@ import re
 import concurrent.futures
 import shutil
 from Bio import SeqIO
+import wub.util.misc
 
 
 class Genome:
@@ -42,7 +43,12 @@ class Sample:
         self.unaligned_merged_bam_file = os.path.join(output_dir, 'merged',
                                                       '_'.join(['unaligned', self.flowcell, self.rnumber])
                                                       + ".sorted.merged.bam")
+        self.unaligned_merged_pickle_file = os.path.join(output_dir, 'merged',
+                                                         '_'.join(['unaligned', self.flowcell, self.rnumber])
+                                                         + ".merged.pickle")
         self.unaligned_files = [align.unaligned for align in self.alignment_objects]
+        self.unaligned_pickles = [align.unaligned_pickle for align in self.alignment_objects]
+
         if self.w_lambda:
             self.host_merged_bam_file = os.path.join(output_dir, 'merged',
                                                      '_'.join([genome.name+'.lambda-filt', self.flowcell, self.rnumber])
@@ -50,20 +56,35 @@ class Sample:
             self.lambda_merged_bam_file = os.path.join(output_dir, 'merged',
                                                        '_'.join(['lambda', self.flowcell, self.rnumber])
                                                        + ".sorted.merged.bam")
+            self.host_merged_pickle_file = os.path.join(output_dir, 'merged',
+                                                        '_'.join([genome.name+'.lambda-filt', self.flowcell, self.rnumber])
+                                                        + ".merged.pickle")
+            self.lambda_merged_pickle_file = os.path.join(output_dir, 'merged',
+                                                          '_'.join(['lambda', self.flowcell, self.rnumber])
+                                                          + ".merged.pickle")
             self.host_alignment_files = [align.host_aligned for align in self.alignment_objects]
             self.lambda_alignment_files = [align.lambda_aligned for align in self.alignment_objects]
+            self.host_alignment_pickles = [align.host_pickle for align in self.alignment_objects]
+            self.lambda_alignment_pickles = [align.lambda_pickle for align in self.alignment_objects]
+
             self.merged_bam_files = [self.host_merged_bam_file, self.unaligned_merged_bam_file,
                                      self.lambda_merged_bam_file]
             self.merged_reference_names = [self.genome.name, self.genome.name, "lambda"]
             self.merged_references = [genome.host_genome_path, genome.host_genome_path, genome.lambda_genome_path]
+            self.merged_pickles = [self.host_merged_pickle_file, self.unaligned_merged_pickle_file,
+                                   self.lambda_merged_pickle_file]
         else:
             self.host_merged_bam_file = os.path.join(output_dir, 'merged',
                                                      '_'.join([genome.name, self.flowcell, self.rnumber])
                                                      + ".sorted.merged.bam")
+            self.host_merged_pickle_file = os.path.join(output_dir, 'merged',
+                                                        '_'.join([genome.name, self.flowcell, self.rnumber])
+                                                        + ".merged.pickle")
             self.host_alignment_files = [align.host_aligned for align in self.alignment_objects]
             self.merged_bam_files = [self.host_merged_bam_file, self.unaligned_merged_bam_file]
             self.merged_reference_names = [self.genome.name, self.genome.name]
             self.merged_references = [genome.host_genome_path, genome.host_genome_path]
+            self.merged_pickles = [self.host_merged_pickle_file, self.unaligned_merged_pickle_file]
 
 
 class SubFolder:
@@ -368,18 +389,34 @@ def merge_bams(sample):
             logging.warning("Stderr: %s" % samtools_index_proc.stderr.decode())
 
 
+def merge_pickles(sample):
+    logging.info("Merging pickles")
+    # Get list of files to merge into and files to be merged
+    merged_pickle_file_list = [sample.host_merged_pickle_file, sample.unaligned_merged_pickle_file]
+    alignment_pickle_list = [sample.host_alignment_pickles, sample.unaligned_pickles]
+
+    if sample.w_lambda:
+        merged_pickle_file_list.append(sample.lambda_merged_pickle_file)
+        alignment_pickle_list.append(sample.lambda_alignment_pickles)
+
+    for merged_file, alignment_files in zip(merged_pickle_file_list, alignment_pickle_list):
+        # Import pickles
+        loaded_pickles = [wub.util.misc.pickle_load(pickle) for pickle in alignment_files]
+        # Merge pickles
+        merged_pickle = wub.util.misc.merge_pickles(loaded_pickles)
+        # Dump merged pickle
+        wub.util.misc.dump(obj=merged_pickle, fname=merged_file)
+
+
 def run_wubber_multiqc(sample, qc_dir):
     # Run multiqc using all the generated pickle files in the directory.
-    pickles = [os.path.join(qc_dir, pickle)
-               for pickle in os.listdir(qc_dir)
-               if pickle.endswith(".pickle")]
     """
     usage: bam_multi_qc [-h] [-r report_pdf] [-x]
                     [input_pickles [input_pickles ...]]
     """
     bam_multi_qc_command = ["bam_multi_qc.py",
                             '-r', os.path.join(qc_dir, sample.sample_prefix + ".multiqc.pdf")]
-    bam_multi_qc_command.extend(pickles)
+    bam_multi_qc_command.extend(sample.merged_pickles)
     # Write bam
     logging.info("Performing multiqc on bam alignments %s" % ' '.join(bam_multi_qc_command))
     # noinspection PyArgumentList
@@ -437,6 +474,9 @@ def main(args):
         for item in concurrent.futures.as_completed(iterator):
             parameter_input = iterator[item]
             success = item.result()
+
+    # Merge pickles
+    merge_pickles(sample)
 
     # Run multiqc
     run_wubber_multiqc(sample, qc_dir)
