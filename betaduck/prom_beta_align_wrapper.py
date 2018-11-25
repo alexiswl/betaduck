@@ -419,7 +419,7 @@ def run_wubber_multiqc(sample, qc_dir):
     bam_multi_qc_command = ["bam_multi_qc.py",
                             '-r', os.path.join(qc_dir, sample.sample_prefix + ".multiqc.pdf")]
     bam_multi_qc_command.extend([pickle
-                                 for pickle in  sample.merged_pickles
+                                 for pickle in sample.merged_pickles
                                  if os.path.isfile(pickle)])
     # Write bam
     logging.info("Performing multiqc on bam alignments %s" % ' '.join(bam_multi_qc_command))
