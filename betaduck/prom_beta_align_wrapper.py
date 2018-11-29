@@ -417,7 +417,8 @@ def run_wubber_multiqc(sample, qc_dir):
                     [input_pickles [input_pickles ...]]
     """
     bam_multi_qc_command = ["bam_multi_qc.py",
-                            '-r', os.path.join(qc_dir, sample.sample_prefix + ".multiqc.pdf")]
+                            '-r', os.path.join(qc_dir, sample.sample_prefix + ".multiqc.pdf"),
+                            '-x']
     bam_multi_qc_command.extend([pickle
                                  for pickle in sample.merged_pickles
                                  if os.path.isfile(pickle)])
