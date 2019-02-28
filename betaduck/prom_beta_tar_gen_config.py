@@ -195,7 +195,12 @@ def main(args):
     # Split out components of the run to grab
     # Date, UTCTIME, PORT, FCIDD, RID
     args.run_dir = os.path.normpath(args.run_dir)
-    date, utc_time, port, fcid, rand_id = os.path.basename(args.run_dir)
+    try:
+        date, utc_time, port, fcid, rand_id = os.path.basename(args.run_dir)
+    except ValueError:
+        logger.error("Could not unpack date, utctime port fcid and rand_id from %s"
+                     % os.path.basename(args.run_dir))
+        sys.exit(1)
 
     summary_dir = os.path.join(args.run_dir, 'sequencing_summary')
     try:
