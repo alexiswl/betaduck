@@ -189,8 +189,8 @@ def main(args):
 
     # First sanitise fastq files
     if args.sanitiser:
-        sanitise_fastq_files(os.path.join(args.run_dir, 'fast5_pass'))
-        sanitise_fastq_files(os.path.join(args.run_dir, 'fast5_fail'))
+        sanitise_fastq_files(os.path.join(args.run_dir, 'fastq_pass'))
+        sanitise_fastq_files(os.path.join(args.run_dir, 'fastq_fail'))
 
     # Split out components of the run to grab
     # Date, UTCTIME, PORT, FCIDD, RID
