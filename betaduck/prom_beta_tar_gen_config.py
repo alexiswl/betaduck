@@ -211,7 +211,9 @@ def main(args):
                    iter(os.listdir(summary_dir))
                    )
         )
-    except StopIteration:
+        sequencing_summary_file = os.path.join(summary_dir, sequencing_summary_file)
+
+    except (StopIteration, FileNotFoundError):
         logger.error("Error, could not find summary file in %s" % summary_dir)
         sys.exit(1)
 
