@@ -81,7 +81,7 @@ def main(args):
         logger.info("Argument %s: %r", arg, value)
 
     # Read in pandas dataframe
-    dataframe = pd.DataFrame(read_config(args.config))
+    dataframe = pd.DataFrame(read_config(args.config)).transpose()
 
     # Reduce thread count unless already 1.
     threads = 1 if args.threads == 1 else args.threads - 1

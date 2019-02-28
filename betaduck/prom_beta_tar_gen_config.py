@@ -64,7 +64,7 @@ def get_all_files(rand_id, summary_df):
 
     # Add to config dict
     for row in unique_files.itertuples():
-        flowcell, run_id, num = row.filename_fastq.split("_")
+        flowcell, run_id, num = row.filename_fastq.split(".", 1)[0].split("_", 3)
         zfill_num = str(num).zfill(zfill)
         fast5_pass_file = os.path.join('fast5_pass', row.filename_fast5)
         fast5_pass_file_renamed = os.path.join('fast5_pass',
@@ -107,7 +107,7 @@ def get_all_files(rand_id, summary_df):
 def output_yaml(yaml_file, dataset):
     logging.info("Printing yaml file to %s" % yaml_file)
     with open(yaml_file, 'w') as file:
-        yaml.dump(json.loads(dataset.to_json(orient='records')), file, default_flow_style=False)
+        yaml.dump(json.loads(dataset.set_index('zfill_num', drop=False).to_json(orient='index')), file, default_flow_style=False)
 
 
 def sanitise_fastq_files(fastq_path):
@@ -133,10 +133,12 @@ def tidy_summary_df(summary_df, config_df):
     summary_df['zfill_num'] = summary_df['filename_fastq'].apply(
         lambda x: str(x.split(".")[0].rsplit("_")[-1]).zfill(zfill))
 
+
     # Rename fastq file to path
-    summary_df = summary_df.merge(config_df, how='left',
+    summary_df = summary_df.merge(config_df, how='inner',
                                   left_on='zfill_num', right_on='zfill_num',
-                                  suffixes=("", "_config"))
+                                  suffixes=("", "_config")) 
+
 
     # Adjust the files
     summary_df['filename_fast5'] = summary_df.apply(lambda x: x.fast5_pass_file_renamed
@@ -164,7 +166,7 @@ def output_mini_dfs(summary_df, summary_dir, fcid, rand_id, active=False):
     :param active: bool
     :return: None
     """
-    for zfill_num in summary_df['zfill_num'].tolist():
+    for zfill_num in summary_df['zfill_num'].unique().tolist():
         # Don't play with the last fast5 file if last row is still active
         if active and zfill_num == max(summary_df['zfill_num'].tolist()):
             # Don't play with the last file
@@ -205,7 +207,8 @@ def main(args):
         sequencing_summary_file = next(
             filter(lambda x:
                    x.endswith("_sequencing_summary.txt")
-                   and not x.endswith("_sequencing_summary.bulk.txt"),
+                   and not x.endswith("_sequencing_summary.bulk.txt")
+		   and 'sequencing_run' in x,
                    iter(os.listdir(summary_dir))
                    )
         )
