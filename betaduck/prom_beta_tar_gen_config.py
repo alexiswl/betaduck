@@ -76,13 +76,13 @@ def get_all_files(rand_id, summary_df):
                                                '_'.join(map(str, [flowcell, rand_id, 'fail', zfill_num]))
                                                + ".fast5.gz"
                                                )
-        fastq_pass_file = os.path.join('fastq_pass', row.filename_fast5)
-        fastq_pass_file_renamed = os.path.join('fast5_pass',
+        fastq_pass_file = os.path.join('fastq_pass', row.filename_fastq)
+        fastq_pass_file_renamed = os.path.join('fastq_pass',
                                                '_'.join(map(str, [flowcell, rand_id, 'pass', zfill_num]))
                                                + ".fastq.gz"
                                                )
-        fastq_fail_file = os.path.join('fastq_fail', row.filename_fast5)
-        fastq_fail_file_renamed = os.path.join('fast5_fail',
+        fastq_fail_file = os.path.join('fastq_fail', row.filename_fastq)
+        fastq_fail_file_renamed = os.path.join('fastq_fail',
                                                '_'.join(map(str, [flowcell, rand_id, 'fail', zfill_num]))
                                                + ".fastq.gz"
                                                )
