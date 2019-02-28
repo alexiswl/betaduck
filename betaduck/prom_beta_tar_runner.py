@@ -112,15 +112,15 @@ def main():
         logger.info("Argument %s: %r", arg, value)
 
     # Gzip up fast5
-    zip_and_move_file(args.fast5_pass_path, args.fast5_output_pass_path,
+    zip_and_move_file(args.fast5_input_pass_path, args.fast5_output_pass_path,
                       overwrite=args.overwrite, inplace=args.inplace, dry_run=args.dry_run)
-    zip_and_move_file(args.fast5_fail_path, args.fast5_output_fail_path,
+    zip_and_move_file(args.fast5_input_fail_path, args.fast5_output_fail_path,
                       overwrite=args.overwrite, inplace=args.inplace, dry_run=args.dry_run)
 
     # Move fastq folder
-    zip_and_move_file(args.fastq_pass_path, args.fastq_output_pass_path,
+    zip_and_move_file(args.fastq_input_pass_path, args.fastq_output_pass_path,
                       overwrite=args.overwrite, inplace=args.inplace, dry_run=args.dry_run)
-    zip_and_move_file(args.fastq_fail_path, args.fastq_output_fail_path,
+    zip_and_move_file(args.fastq_input_fail_path, args.fastq_output_fail_path,
                       overwrite=args.overwrite, inplace=args.inplace, dry_run=args.dry_run)
 
     # Get md5 for fastq and fast5
