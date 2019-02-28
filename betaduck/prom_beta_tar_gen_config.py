@@ -173,7 +173,7 @@ def output_mini_dfs(summary_df, summary_dir, fcid, rand_id, active=False):
         # to the _config suffix during the merge
         mini_summary_df = summary_df.query("zfill_num=='%s'" % zfill_num).\
             drop(columns=config_columns, errors='ignore').\
-            filter(regex='.*(?<!_config', axis='columns')
+            filter(regex='.*(?<!_config)$', axis='columns')
         # Set output file
         mini_output_file = os.path.join(summary_dir,
                                         '_'.join(map(str, [fcid, rand_id, zfill_num, "sequencing_summary"])) + ".txt")
