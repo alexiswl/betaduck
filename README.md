@@ -40,7 +40,7 @@ You may need to log out and log back in again for the super user permissions to 
 
 ### Installing betaduck from docker
 `docker pull alexiswl/betaduck:18.07.1-3`  
-18.07.1-3 represents the current MinKNOW version.
+19.01.1-dev represents the current MinKNOW version.
 
 ## Tidying and compressing files
 
@@ -51,18 +51,11 @@ For assistance with options use
 `docker run alexiswl/betaduck config --help`
 
 **betaduck config parameters**
-* --sequencing_summary_path
-  + Contains all the summary.txt files from guppy/dogfish
-  + Likely to be `/data/basecalled/<sample>/<flowcell_port>/`
-* --fastq_path
-  + Contains all of the output .fastq files
-  + Likely to be `/data/basecalled/<sample>/<flowcell_port>/`
-* --fast5_path
-  + Contains a list of subfolders, each containing fast5 files
-  + Likely to be `/data/basecalled/<sample>/<flowcell_port>/reads`
+* --run-dir
+  + Likely to be `/data/<run_id>/<sample_id>/<run_dir>`
 * --output_yaml_file
   + Output config file generated. To be used in next script.  
-  + Likely to be `/data/basecalled/<sample>/<flowcell_port>/config.yaml`
+  + Likely to be `/data/<run_id>/<sample_id>/<run_dir>/config.yaml`
 * --sanitiser
   + Run the fastq sanitiser script before generating the config file.  
 * --active
@@ -95,10 +88,13 @@ Most of the hard work has been done for us in the previous script.
 Here is where docker shines, it can restrict the cpus and memory utilisations of a given container as to not blow up your system.  
 Having said that, the PromethION beta device is pretty powerful machine. It has 96 cpus with 400 Gb of memory and all of this on SSD drives.
 Use the `top` and `free` commands to view the current utilisations of your system.  
-The `--cpus` parameter should be 1 higher than the `--threads` parameter used by betaduck.  
+The `--cpus` parameter should be 1 higher than the `--threads` parameter used by betaduck. 
+We can also trick the container into thinking the root directory is the run_dir. 
 Example:  
-`docker run --memory=50g --cpus=7 --volume=/data:/data alexiswl/betaduck tidy ..parameters`
 
+`run_id=/data/<run_id>/<sample_id>/<run_dir>`  
+`config_yaml=config.yaml`  
+`docker run --memory=50g --cpus=7 --volume=${run_id}:/ alexiswl/betaduck tidy --config=${config.yaml} ..parameters`  
 
 ## Plotting datasets with betaduck
 Now we get our rewards, some plots produced from the seaborn and matplotlib libraries
