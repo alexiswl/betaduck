@@ -103,7 +103,7 @@ def get_all_files(rand_id, summary_df):
                                            output_md5sum_fast5_pass, output_md5sum_fastq_pass,
                                            output_md5sum_fast5_fail, output_md5sum_fastq_fail],
                                      index=config_columns))
-    return pd.concat(config_list, ignore_index=True, sort=True)
+    return pd.concat(config_list, axis='columns', ignore_index=True, sort=True).transpose()
 
 
 def output_yaml(yaml_file, dataset):
