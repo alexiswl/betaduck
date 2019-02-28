@@ -69,11 +69,11 @@ def main():
     # Plotter
     plotter_parser = subparsers.add_parser('plot',
                                            help="Plot the run(s)")
-    plotter_parser.add_argument("--summary_dir", type=str, required=True,
+    plotter_parser.add_argument("--summary-dir", type=str, required=True,
                                 help="Contains the txt files (comma separated for multiple locations)")
-    plotter_parser.add_argument("--fastq_dir", type=str, required=True,
+    plotter_parser.add_argument("--fastq-dir", type=str, required=True,
                                 help="Where are the fastq files (comma separated for multiple locations)")
-    plotter_parser.add_argument("--plots_dir", type=str, required=True,
+    plotter_parser.add_argument("--plots-dir", type=str, required=True,
                                 help="Where do the plots go")
     plotter_parser.add_argument("--name", type=str, required=True,
                                 help="Titles for plots")

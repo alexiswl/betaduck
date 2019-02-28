@@ -38,11 +38,11 @@ def get_args():
     1. Path to Sequencing Summary Directory
     """
     parser = argparse.ArgumentParser(description="Plot a run as it is going")
-    parser.add_argument("--summary_dir", type=str, required=True,
+    parser.add_argument("--summary-dir", type=str, required=True,
                         help="Contains the txt files")
-    parser.add_argument("--fastq_dir", type=str, required=True,
+    parser.add_argument("--fastq-dir", type=str, required=True,
                         help="Where are the fastq files")
-    parser.add_argument("--plots_dir", type=str, required=True,
+    parser.add_argument("--plots-dir", type=str, required=True,
                         help="Where do the plots go")
     parser.add_argument("--name", type=str, required=True,
                         help="Titles for plots")
