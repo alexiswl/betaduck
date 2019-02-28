@@ -9,116 +9,101 @@ import json
 import logging
 import subprocess
 import h5py
+import sys
+import shutil
 
-# """
-# Generate a yaml file used to run each of the alpha_light python commands
-# """
+"""
+Generate a yaml file used to run each of the alpha_light python commands
+Re-distribute the sequencing summary file as a smaller subset.
+"""
 
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
 
+zfill = 5
 
-def get_flowcell_id(fast5_file):
-    with h5py.File(fast5_file) as f:
-        # Get flowcell ID from UniqueGlobalKey/tracking_id
-        try:
-            read_attributes = dict(f['UniqueGlobalKey/tracking_id'].attrs.items())
-        except KeyError:
-            logging.warning("Could not find flowcell ID from %s" % fast5_file)
-            return None
-
-        return read_attributes['flow_cell_id']
+config_columns = ['zfill_num', 'rand_id',
+                  'fast5_pass_file', 'fast5_pass_file_renamed',
+                  'fast5_fail_file', 'fast5_fail_file_renamed',
+                  'fastq_pass_file', 'fastq_pass_file_renamed',
+                  'fastq_fail_file', 'fastq_fail_file_renamed',
+                  'md5_fast5_pass', 'md5_fastq_pass',
+                  'md5_fast5_fail', 'md5_fastq_fail']
 
 
-def get_random_number(fast5_file):
-    _, rnumber, _, read, _, channel, _ = fast5_file.rsplit("_", 6)
-    try:
-        rnumber = int(rnumber)
-        return rnumber
-    except TypeError:
-        logging.warning("Tried to get rnumber from fast5 file. Got %s from %s" % (fast5_file, rnumber))
-        return None
-
-
-def get_all_files(sequencing_summary_dir, fastq_dir, fast5_dir):
+def get_all_files(rand_id, summary_df):
     """
     :rtype: pd.DataFrame
-    :param sequencing_summary_dir: string
-    :param fastq_dir: string
-    :param fast5_dir: string
+    :param rand_id: string
+    :param summary_df: pd.DataFrame
+
+    Run directory looks like this
+    ./fast5_pass
+        PAD29258_b799457dcb4fece6795e4bca6ae64348f2687c97_0.fast5
+        PAD29258_b799457dcb4fece6795e4bca6ae64348f2687c97_1000.fast5
+    ./fast5_fail
+        PAD29258_b799457dcb4fece6795e4bca6ae64348f2687c97_0.fast5
+        PAD29258_b799457dcb4fece6795e4bca6ae64348f2687c97_1000.fast5
+    ./fastq_fail
+        PAD29258_b799457dcb4fece6795e4bca6ae64348f2687c97_0.fastq
+        PAD29258_b799457dcb4fece6795e4bca6ae64348f2687c97_1000.fastq
+    ./fast5_skip
+    ./fastq_pass
+        PAD29258_b799457dcb4fece6795e4bca6ae64348f2687c97_0.fastq
+        PAD29258_b799457dcb4fece6795e4bca6ae64348f2687c97_1000.fastq
+    ./sequencing_summary
+        PCT0035_20190226_0004A30B00245CD6_2_A9_D9_sequencing_run_hcc33t_s5_34419_sequencing_summary.txt
     """
 
-    logging.info("Grabbing sequencing summary files")
-    sequencing_summary_files = [os.path.join(sequencing_summary_dir, sequencing_summary_file)
-                                for sequencing_summary_file in os.listdir(sequencing_summary_dir)
-                                if re.match('sequencing_summary_\d+.txt', sequencing_summary_file)]
+    logging.info("Grabbing run information from directory")
 
-    logging.info("Grabbing fastq files")
-    fastq_files = [os.path.join(fastq_dir, fastq_file)
-                   for fastq_file in os.listdir(sequencing_summary_dir)
-                   if re.match('fastq_\d+.fastq', fastq_file)]
+    config_list = []
 
-    logging.info("Grabbig fast5 directories")
-    fast5_dirs = [os.path.join(fast5_dir, fast5_folder)
-                  for fast5_folder in os.listdir(fast5_dir)
-                  if os.path.isdir(os.path.join(fast5_dir, fast5_folder))
-                  and re.match("^\d+$", fast5_folder)]
+    # Grab fastq and fast5 values
+    unique_files = summary_df[['filename_fastq', 'filename_fast5']].drop_duplicates()
 
-    # Get rnumber and flowcell id
-    logging.info("Grabbing a flowcell ID from the fast5 attributes")
-    flowcell_id = None
-    rnumber = None
-    while flowcell_id is None or rnumber is None:
-        for fast5_dir in fast5_dirs:
-            logging.info("Trying in %s" % fast5_dir)
-            fast5_files = [os.path.join(fast5_dir, fast5_file) 
-                           for fast5_file in os.listdir(fast5_dir)
-                           if fast5_file.endswith('.fast5')
-                           and os.path.isfile(os.path.join(fast5_dir, fast5_file))]
-            for fast5_file in fast5_files:
-                flowcell_id = get_flowcell_id(fast5_file)
-                rnumber = get_random_number(fast5_file)
-                if rnumber is not None and flowcell_id is not None:
-                    break
-                else:
-                    logging.info("Trying another file")
-            if rnumber is not None and flowcell_id is not None:
-                break
+    # Add to config dict
+    for row in unique_files.itertuples():
+        flowcell, run_id, num = row.filename_fastq.split("_")
+        zfill_num = str(num).zfill(zfill)
+        fast5_pass_file = os.path.join('fast5_pass', row.filename_fast5)
+        fast5_pass_file_renamed = os.path.join('fast5_pass',
+                                               '_'.join(map(str, [flowcell, rand_id, 'pass', zfill_num]))
+                                               + ".fast5.gz"
+                                               )
+        fast5_fail_file = os.path.join('fast5_fail', row.filename_fast5)
+        fast5_fail_file_renamed = os.path.join('fast5_fail',
+                                               '_'.join(map(str, [flowcell, rand_id, 'fail', zfill_num]))
+                                               + ".fast5.gz"
+                                               )
+        flowcell, run_id, num = row.filename_fastq.split("_")
+        zfill_num = str(num).zfill(zfill)
+        fastq_pass_file = os.path.join('fastq_pass', row.filename_fast5)
+        fastq_pass_file_renamed = os.path.join('fast5_pass',
+                                               '_'.join(map(str, [flowcell, rand_id, 'pass', zfill_num]))
+                                               + ".fastq.gz"
+                                               )
+        fastq_fail_file = os.path.join('fastq_fail', row.filename_fast5)
+        fastq_fail_file_renamed = os.path.join('fast5_fail',
+                                               '_'.join(map(str, [flowcell, rand_id, 'fail', zfill_num]))
+                                               + ".fastq.gz"
+                                               )
 
-    logging.info("Got flowcell ID as %s" % flowcell_id) 
-    logging.info("Got rnumber as %s" % rnumber)
+        # Add md5sum outputs
+        output_md5sum_fast5_pass = os.path.join("fast5_pass", "checksum.fast5.pass.md5")
+        output_md5sum_fastq_pass = os.path.join("fastq_pass", "checksum.fastq.pass.md5")
+        output_md5sum_fast5_fail = os.path.join("fast5_fail", "checksum.fast5.fail.md5")
+        output_md5sum_fastq_fail = os.path.join("fast5_fail", "checksum.fastq.fail.md5")
 
-    sequencing_summary_df = pd.DataFrame(sequencing_summary_files, 
-                                         columns=["sequencing_summary_file"])
-    fastq_df = pd.DataFrame(fastq_files, columns=["fastq_file"])
-    fast5_df = pd.DataFrame(fast5_dirs, columns=["fast5_dir"])
-
-    # Append number onto each dataframe
-    sequencing_summary_df['number'] = sequencing_summary_df['sequencing_summary_file'].apply(
-        lambda x: int(re.match("sequencing_summary_(\d+).txt", os.path.basename(x)).group(1)))
-    fastq_df['number'] = fastq_df['fastq_file'].apply(
-        lambda x: int(re.match("fastq_(\d+).fastq", os.path.basename(x)).group(1)))
-    fast5_df['number'] = fast5_df['fast5_dir'].apply(
-        lambda x: int(re.match('(\d+)', os.path.basename(x)).group(1)))
-
-    # Sort dataframes by number
-    sequencing_summary_df.sort_values(by=['number'], inplace=True)
-    fastq_df.sort_values(by=['number'], inplace=True)
-    fast5_df.sort_values(by=['number'], inplace=True)
-
-    # Set number as index for each dataframe
-    sequencing_summary_df.set_index("number", inplace=True)
-    fastq_df.set_index("number", inplace=True)
-    fast5_df.set_index("number", inplace=True)
-
-    # Now merge each using pd.concat
-    dataset = pd.concat([sequencing_summary_df, fastq_df, fast5_df], axis='columns', join='inner', sort=True)
-
-    # Add on flowcellIDs and rnumbers
-    dataset['FlowcellID'] = flowcell_id
-    dataset['rnumber'] = rnumber
-
-    return dataset
+        config_list.append(pd.Series(data=[zfill_num, rand_id,
+                                           fast5_pass_file, fast5_pass_file_renamed,
+                                           fast5_fail_file, fast5_fail_file_renamed,
+                                           fastq_pass_file, fastq_pass_file_renamed,
+                                           fastq_fail_file, fastq_fail_file_renamed,
+                                           output_md5sum_fast5_pass, output_md5sum_fastq_pass,
+                                           output_md5sum_fast5_fail, output_md5sum_fastq_fail],
+                                     index=config_columns))
+    return pd.concat(config_list, ignore_index=True, sort=True)
 
 
 def output_yaml(yaml_file, dataset):
@@ -138,6 +123,65 @@ def sanitise_fastq_files(fastq_path):
         logging.warning("Stderr %s" % sanitise_proc.stderr.decode())
 
 
+def tidy_summary_df(summary_df, config_df):
+    """
+    Tidy and add columns to summary dataframe from config dataframe
+    :param summary_df: pd.DataFrame
+    :param config_df: pd.DataFrame
+    :return: pd.DataFrame
+    """
+    # Adjust values of fastq and fast5 filenames
+    # Grab number value to bind to config_df
+    summary_df['zfill_num'] = summary_df['filename_fastq'].apply(
+        lambda x: str(x.split(".")[0].rsplit("_")[-1]).zfill(zfill))
+
+    # Rename fastq file to path
+    summary_df = summary_df.merge(config_df, how='left',
+                                  left_on='zfill_num', right_on='zfill_num',
+                                  suffixes=("", "_config"))
+
+    # Adjust the files
+    summary_df['filename_fast5'] = summary_df.apply(lambda x: x.fast5_pass_file_renamed
+                                                                  if x.passes_filtering
+                                                                  else x.fast5_fail_file_renamed,
+                                                    axis='columns')
+    summary_df['filename_fastq'] = summary_df.apply(lambda x: x.fastq_pass_file_renamed
+                                                                 if x.passes_filtering
+                                                                 else x.fastq_fail_file_renamed,
+                                                    axis='columns')
+
+    # Adjust the run_id
+    summary_df['run_id'] = summary_df.apply(lambda x: x.rand_id, axis='columns')
+
+    return summary_df
+
+
+def output_mini_dfs(summary_df, summary_dir, fcid, rand_id, active=False):
+    """
+    Output mini df, a subset of the bulk df
+    :param summary_df: pd.DataFrame
+    :param summary_dir: path
+    :param fcid: string
+    :param rand_id: int
+    :param active: bool
+    :return: None
+    """
+    for zfill_num in summary_df['num'].tolist():
+        # Don't play with the last fast5 file if last row is still active
+        if active and zfill_num == max(summary_df['zfill_num'].tolist()):
+            # Don't play with the last file
+            break
+        # Grab summary df, drop config columns and any that may have been renamed
+        # to the _config suffix during the merge
+        mini_summary_df = summary_df.query("zfill_num=='%s'" % zfill_num).\
+            drop(columns=config_columns, errors='ignore').\
+            filter(regex='.*(?<!_config', axis='columns')
+        # Set output file
+        mini_output_file = os.path.join(summary_dir,
+                                        '_'.join(map(str, [fcid, rand_id, zfill_num, "sequencing_summary"])) + ".txt")
+        mini_summary_df.to_csv(mini_output_file, sep="\t", index=False, header=True)
+
+
 def main(args):
     # Log arguments
     for arg, value in sorted(vars(args).items()):
@@ -147,24 +191,46 @@ def main(args):
     if args.sanitiser:
         sanitise_fastq_files(args.fastq_path)
 
-    # Read in dataset
-    dataset = get_all_files(sequencing_summary_dir=os.path.abspath(args.sequencing_summary_path),
-                            fastq_dir=os.path.abspath(args.fastq_path),
-                            fast5_dir=os.path.abspath(args.fast5_path))
-    logging.info("Obtained %d folders" % dataset.shape[0])
+    # Split out components of the run to grab
+    # Date, UTCTIME, PORT, FCIDD, RID
+    args.run_dir = os.path.normpath(args.run_dir)
+    date, utc_time, port, fcid, rand_id = os.path.basename(args.run_dir)
 
-    # Add md5sum outputs
-    output_md5sum_fast5 = os.path.join(os.path.abspath(args.fast5_path), "checksum.fast5.md5")
-    output_md5sum_fastq = os.path.join(os.path.abspath(args.fastq_path), 'fastq', "checksum.fastq.md5")
-    dataset['md5_fast5'] = output_md5sum_fast5
-    dataset['md5_fastq'] = output_md5sum_fastq
+    summary_dir = os.path.join(args.run_dir, 'sequencing_summary')
+    try:
+        sequencing_summary_file = next(
+            filter(lambda x:
+                   x.endswith("_sequencing_summary.txt")
+                   and not x.endswith("_sequencing_summary.bulk.txt"),
+                   iter(os.listdir(summary_dir))
+                   )
+        )
+    except StopIteration:
+        logger.error("Error, could not find summary file in %s" % summary_dir)
+        sys.exit(1)
 
-    # Drop the last row if the run is still going.
-    if args.active:
-        dataset.drop(dataset.tail(1).index,inplace=True)
+    # Read in summary dataframe
+    summary_df = pd.read_csv(sequencing_summary_file, sep='\t', low_memory=False)
+
+    # Grab all files and create new dataframe
+    config_df = get_all_files(rand_id, summary_df)
+
+    # Rename sequencing_summary_file to bulk file
+    sequencing_summary_file_renamed = re.sub("_sequencing_summary.txt$",
+                                             "_sequencing_summary.bulk.txt", sequencing_summary_file)
+
+    # Tidy summary df
+    summary_df = tidy_summary_df(summary_df, config_df)
+
+    # Output smaller dfs
+    output_mini_dfs(summary_df, summary_dir, fcid, rand_id, active=args.active)
+
+    # Copy across the bulk file
+    if not os.path.isfile(sequencing_summary_file_renamed):
+        shutil.copy(sequencing_summary_file, sequencing_summary_file_renamed)
 
     # Output the yaml file
-    output_yaml(args.output_yaml_file, dataset)
+    output_yaml(args.output_yaml_file, config_df)
 
 
 if __name__ == "__main__":

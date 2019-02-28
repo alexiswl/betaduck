@@ -11,6 +11,9 @@ import concurrent.futures
 import numpy as np
 import time
 
+"""
+Usage: Given a config file, run each gzip set in parallel
+"""
 
 logging.basicConfig(level=logging.DEBUG,
                     format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
@@ -33,13 +36,18 @@ def run_process(config_data, keep=False, overwrite=False, dry_run=False):
     # Generate tar command
     tar_command = ["python", os.path.join(here, "prom_beta_tar_runner.py"),
                    # Then come the options.
-                   "--sequencing_summary_path=%s" % config_data.sequencing_summary_file,
-                   "--fastq_path=%s" % config_data.fastq_file,
-                   "--fast5_path=%s" % config_data.fast5_dir,
-                   "--flowcellID=%s" % config_data.FlowcellID,
-                   "--rnumber=%s" % config_data.rnumber,
-                   "--md5_fast5=%s" % config_data.md5_fast5,
-                   "--md5_fastq=%s" % config_data.md5_fastq]
+                   "--fastq-input-pass-path=%s" % config_data.fastq_pass_file,
+                   "--fastq-output-pass-path=%s" % config_data.fastq_pass_file_renamed,
+                   "--fast5-input-pass-path=%s" % config_data.fast5_pass_file,
+                   "--fast5-output-pass-path=%s" % config_data.fast5_pass_file_renamed,
+                   "--fastq-input-fail-path=%s" % config_data.fastq_fail_file,
+                   "--fastq-output-fail-path=%s" % config_data.fastq_fail_file_renamed,
+                   "--fast5-input-fail-path=%s" % config_data.fast5_fail_file,
+                   "--fast5-output-fail-path=%s" % config_data.fast5_fail_file_renamed,
+                   "--md5-pass-fast5=%s" % config_data.md5_fast5_pass,
+                   "--md5-pass-fastq=%s" % config_data.md5_fastq_pass,
+                   "--md5-fail-fast5=%s" % config_data.md5_fast5_fail,
+                   "--md5-fail-fastq=%s" % config_data.md5_fastq_fail]
     # Do we want to keep the data
     if not keep:
         tar_command.append("--inplace")

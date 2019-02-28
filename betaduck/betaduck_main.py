@@ -41,12 +41,8 @@ def main():
     # Generate config arguments
     config_parser = subparsers.add_parser('config',
                                           help="Generate a config file that will be used to organise folder")
-    config_parser.add_argument('--sequencing_summary_path',
-                               help="Path to sequencing_summary_path", required=True)
-    config_parser.add_argument('--fastq_path',
-                               help="Path to fastq files", required=True)
-    config_parser.add_argument("--fast5_path",
-                               help="Path to folder of fast5 files", required=True)
+    config_parser.add_argument('--run-dir',
+                               help="Path to run", required=True)
     config_parser.add_argument("--output_yaml_file",
                                help="Yaml file to create", required=True)
     config_parser.add_argument("--sanitiser", action='store_true', default=False, 
@@ -62,7 +58,7 @@ def main():
                             help="Path to config file")
     tar_parser.add_argument("--keep", default=False, action='store_true',
                             help="Keep the original files")
-    tar_parser.add_argument("--dry_run", default=False, action='store_true',
+    tar_parser.add_argument("--dry-run", default=False, action='store_true',
                             help="Just log the commands, do not run them")
     tar_parser.add_argument("--overwrite", default=False, action='store_true',
                             help="Overwrite files if they already exist")
