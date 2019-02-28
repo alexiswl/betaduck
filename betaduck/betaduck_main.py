@@ -43,7 +43,7 @@ def main():
                                           help="Generate a config file that will be used to organise folder")
     config_parser.add_argument('--run-dir',
                                help="Path to run", required=True)
-    config_parser.add_argument("--output_yaml_file",
+    config_parser.add_argument("--output-yaml-file",
                                help="Yaml file to create", required=True)
     config_parser.add_argument("--sanitiser", action='store_true', default=False, 
                                help="run fastq sanitiser before generating config")
