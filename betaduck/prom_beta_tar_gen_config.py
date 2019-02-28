@@ -76,8 +76,6 @@ def get_all_files(rand_id, summary_df):
                                                '_'.join(map(str, [flowcell, rand_id, 'fail', zfill_num]))
                                                + ".fast5.gz"
                                                )
-        flowcell, run_id, num = row.filename_fastq.split("_")
-        zfill_num = str(num).zfill(zfill)
         fastq_pass_file = os.path.join('fastq_pass', row.filename_fast5)
         fastq_pass_file_renamed = os.path.join('fast5_pass',
                                                '_'.join(map(str, [flowcell, rand_id, 'pass', zfill_num]))
@@ -166,7 +164,7 @@ def output_mini_dfs(summary_df, summary_dir, fcid, rand_id, active=False):
     :param active: bool
     :return: None
     """
-    for zfill_num in summary_df['num'].tolist():
+    for zfill_num in summary_df['zfill_num'].tolist():
         # Don't play with the last fast5 file if last row is still active
         if active and zfill_num == max(summary_df['zfill_num'].tolist()):
             # Don't play with the last file
