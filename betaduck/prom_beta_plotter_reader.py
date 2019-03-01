@@ -209,7 +209,7 @@ def trim_dataset(dataset, plots_dir, name):
                    'Events Ratio': (events_ratio_query, events_ratio_query_not),
                    'Max Read Length': (read_length_query, read_length_query_not)}
 
-    plot_venn_diagram_of_filtered_data(dataset, filter_dict, plots_dir, name)
+    plot_venn_diagram_of_filtered_data(dataset, filter_dict, name, plots_dir)
 
     dataset = dataset.query(' & '.join([read_length_query, events_ratio_query, time_min_query, time_max_query]))
     logging.info("Finished filtering with %d reads" % dataset.shape[0])
