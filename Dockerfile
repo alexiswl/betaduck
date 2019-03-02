@@ -7,28 +7,24 @@ RUN apt-get -y install gcc zlib1g-dev liblzma-dev libcurl-dev libssl-dev
 # Update conda
 RUN conda update -n base conda --yes
 RUN conda update --all --yes
+# Install pip
+RUN conda install pip --yes
 
-# Download poreduck
+# Download betaduck
 RUN git clone -b 19.01.1-1-dev https://github.com/alexiswl/betaduck.git
 WORKDIR ./betaduck
-
-# Install matplotlib_venn through pip
-RUN pip install matplotlib_venn
-
-# Install required packages
-RUN conda install --file requirements.txt --yes
-
-# Re-update conda
-RUN conda update --all --yes
 
 # Upgrade pip
 RUN pip install --upgrade pip
 
-# Install poreduck using pip
-RUN pip install -e . --ignore-installed
+# Install environment
+RUN conda create environment.yaml --yes
 
-# Install deconcatenate fastqs
-RUN pip install ont-fastq-deconcatenate
+# Source env
+RUN source activate python_3.7
+
+# Install betaduck
+RUN python setup.py install
 
 # Copy the entry point for the user
 COPY ./docker-entrypoint.sh /
