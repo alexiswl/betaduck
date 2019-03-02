@@ -147,6 +147,5 @@ dependencies:
     - pytest==3.10.0
     - tqdm==4.28.1
     - wincertstore==0.2
-    - wub==0.3.0
 prefix: /home/prom/anaconda3/envs/python_3.7
 
