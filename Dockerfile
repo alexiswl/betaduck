@@ -18,13 +18,17 @@ WORKDIR ./betaduck
 RUN pip install --upgrade pip
 
 # Install environment
-RUN conda create environment.yaml --yes
+RUN cat environment.yaml
+RUN conda env create -f environment.yaml
 
 # Source env
-RUN source activate python_3.7
+RUN conda activate python_3.7
 
 # Install betaduck
 RUN python setup.py install
+
+# Install wub
+RUN pip install git+https://github.com/nanoporetech/wub.git
 
 # Copy the entry point for the user
 COPY ./docker-entrypoint.sh /
