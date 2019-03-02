@@ -22,6 +22,7 @@ RUN cat environment.yaml
 RUN conda env create -f environment.yaml
 
 # Source env
+RUN conda init bash
 RUN conda activate python_3.7
 
 # Install betaduck
