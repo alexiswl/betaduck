@@ -83,6 +83,8 @@ def zip_and_move_file(file_path, file_output_path, overwrite=False, inplace=Fals
 
 
 def get_md5sum(output_path):
+    if not os.path.isfile(output_path):
+        return None
     logging.info("Obtaining the md5sum for %s" % output_path)
 
     # Grab the md5sum of the file. Use the relative path
@@ -98,6 +100,8 @@ def get_md5sum(output_path):
 
 
 def write_md5sum(md5_sum, output_md5_file):
+    if md5_sum is None:
+        return
     logging.info("Writing md5sum '%s' to %s" % (md5_sum, output_md5_file))
     with open(output_md5_file, 'a') as md5_h:
         md5_h.write(md5_sum + "\n")
@@ -111,17 +115,26 @@ def main():
     for arg, value in sorted(vars(args).items()):
         logger.info("Argument %s: %r", arg, value)
 
-    # Gzip up fast5
-    zip_and_move_file(args.fast5_input_pass_path, args.fast5_output_pass_path,
-                      overwrite=args.overwrite, inplace=args.inplace, dry_run=args.dry_run)
-    zip_and_move_file(args.fast5_input_fail_path, args.fast5_output_fail_path,
-                      overwrite=args.overwrite, inplace=args.inplace, dry_run=args.dry_run)
-
-    # Move fastq folder
-    zip_and_move_file(args.fastq_input_pass_path, args.fastq_output_pass_path,
-                      overwrite=args.overwrite, inplace=args.inplace, dry_run=args.dry_run)
-    zip_and_move_file(args.fastq_input_fail_path, args.fastq_output_fail_path,
-                      overwrite=args.overwrite, inplace=args.inplace, dry_run=args.dry_run)
+    # Either file may not exist (but at least one must):
+    if not os.path.isfile(args.fast5_input_pass_path) and not os.path.isfile(args.fast5_input_fail_path):
+        logger.error("Warning, neither pass nor fail fast5 file exist")
+    if not os.path.isfile(args.fastq_input_pass_path) and not os.path.isfile(args.fastq_input_fail_path):
+        logger.error("Warning, neither pass nor fail fastq file exist")
+    
+    # Gzip up and move fast5 files
+    if os.path.isfile(args.fast5_input_pass_path):
+        zip_and_move_file(args.fast5_input_pass_path, args.fast5_output_pass_path,
+                          overwrite=args.overwrite, inplace=args.inplace, dry_run=args.dry_run)
+    if os.path.isfile(args.fast5_input_fail_path):
+        zip_and_move_file(args.fast5_input_fail_path, args.fast5_output_fail_path,
+                          overwrite=args.overwrite, inplace=args.inplace, dry_run=args.dry_run)
+    # Move fastq folders
+    if os.path.isfile(args.fastq_input_pass_path):
+        zip_and_move_file(args.fastq_input_pass_path, args.fastq_output_pass_path,
+                          overwrite=args.overwrite, inplace=args.inplace, dry_run=args.dry_run)
+    if os.path.isfile(args.fastq_input_fail_path):
+        zip_and_move_file(args.fastq_input_fail_path, args.fastq_output_fail_path,
+                          overwrite=args.overwrite, inplace=args.inplace, dry_run=args.dry_run)
 
     # Get md5 for fastq and fast5
     if not args.dry_run:

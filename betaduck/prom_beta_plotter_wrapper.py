@@ -21,8 +21,8 @@ logger = logging.getLogger()
 
 """
 Sequencing summary file columns
-filename	read_id	run_id	channel	start_time	duration	num_events	template_start	num_events_template
-template_duration	sequence_length_template	mean_qscore_template	strand_score_template
+filename    read_id run_id  channel start_time  duration    num_events  template_start  num_events_template
+template_duration   sequence_length_template    mean_qscore_template    strand_score_template
 """
 
 """
@@ -38,11 +38,11 @@ def get_args():
     1. Path to Sequencing Summary Directory
     """
     parser = argparse.ArgumentParser(description="Plot a run as it is going")
-    parser.add_argument("--summary_dir", type=str, required=True,
+    parser.add_argument("--summary-dir", type=str, required=True,
                         help="Contains the txt files")
-    parser.add_argument("--fastq_dir", type=str, required=True,
+    parser.add_argument("--fastq-dir", type=str, required=True,
                         help="Where are the fastq files")
-    parser.add_argument("--plots_dir", type=str, required=True,
+    parser.add_argument("--plots-dir", type=str, required=True,
                         help="Where do the plots go")
     parser.add_argument("--name", type=str, required=True,
                         help="Titles for plots")
@@ -75,23 +75,27 @@ def main(args):
     # Read in summary datasets
     logging.info("Reading in summary datasets")
     summary_datasets = read_summary_datasets(summary_files, args.threads)
+    print(summary_datasets.head())
 
     # Read in fastq_datasets
     logging.info("Reading in fastq datasets")
     fastq_datasets = read_fastq_datasets(fastq_files, args.threads)
+    # Rename run_id column
+    fastq_datasets.rename(columns={"run_id": "run_id_orig"}, inplace=True)
+    print(fastq_datasets.head())
 
     # Merge summary and fastq datasets
     logging.info("Merging datasets")
 
     # Merging works faster on indexes
-    summary_datasets.set_index(['read_id', 'run_id', 'channel'], inplace=True)
-    fastq_datasets.set_index(['read_id', 'run_id', 'channel'], inplace=True)
+    summary_datasets.set_index(['read_id', 'run_id_orig', 'channel'], inplace=True)
+    fastq_datasets.set_index(['read_id', 'run_id_orig', 'channel'], inplace=True)
 
     # Merge on indexes
     dataset = dd.merge(summary_datasets, fastq_datasets, left_index=True, right_index=True)
 
     # Now drop the indexes
-    dataset.reset_index(['read_id', 'run_id', 'channel'], inplace=True)
+    dataset.reset_index(['read_id', 'run_id_orig', 'channel'], inplace=True)
 
     # Drop summary and fastq datasets which will lower the memory requirements of the system.
     del summary_datasets
@@ -99,6 +103,9 @@ def main(args):
 
     # Add in the start_time_float_by_sample (allows us to later iterate through plots by sample.
     dataset = convert_sample_time_columns(dataset)
+
+    print(dataset)
+    print(dataset.columns)
 
     # Print the non-trimmed stats before proceeding
     print_stats(dataset, args.name+".unfiltered", args.plots_dir)

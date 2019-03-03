@@ -11,12 +11,16 @@ from betaduck.prom_beta_plotter_gen import plot_venn_diagram_of_filtered_data
 
 import logging
 
+
 def get_summary_files(summary_dirs):
     summary_files = [os.path.join(summary_dir, summary_file)
                      for summary_dir in summary_dirs
                      for summary_file in os.listdir(summary_dir)
                      if summary_file.endswith(".txt")
-                     and "sequencing_summary" in summary_file]
+                     and not summary_file.endswith("_sequencing_summary.bulk.txt")
+                     and not summary_file.endswith(".")
+                     and "sequencing_summary" in summary_file
+                     and not "sequencing_run" in summary_file]
 
     return summary_files
 
@@ -40,7 +44,7 @@ def get_series_from_seq(record):
     row_as_dict = dict(x.split("=") for x in record.description.split()[1:])
 
     return pd.Series([fastq_id, row_as_dict['runid'],
-                      row_as_dict['sampleid'], row_as_dict['read'],
+                      row_as_dict['sample_id'], row_as_dict['read'],
                       row_as_dict['ch'], row_as_dict['start_time']],
                      index=index)
 
@@ -205,7 +209,7 @@ def trim_dataset(dataset, plots_dir, name):
                    'Events Ratio': (events_ratio_query, events_ratio_query_not),
                    'Max Read Length': (read_length_query, read_length_query_not)}
 
-    plot_venn_diagram_of_filtered_data(dataset, filter_dict, plots_dir, name)
+    plot_venn_diagram_of_filtered_data(dataset, filter_dict, name, plots_dir)
 
     dataset = dataset.query(' & '.join([read_length_query, events_ratio_query, time_min_query, time_max_query]))
     logging.info("Finished filtering with %d reads" % dataset.shape[0])

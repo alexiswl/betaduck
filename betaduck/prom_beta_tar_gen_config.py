@@ -76,13 +76,13 @@ def get_all_files(rand_id, summary_df):
                                                '_'.join(map(str, [flowcell, rand_id, 'fail', zfill_num]))
                                                + ".fast5.gz"
                                                )
-        fastq_pass_file = os.path.join('fastq_pass', row.filename_fast5)
-        fastq_pass_file_renamed = os.path.join('fast5_pass',
+        fastq_pass_file = os.path.join('fastq_pass', row.filename_fastq)
+        fastq_pass_file_renamed = os.path.join('fastq_pass',
                                                '_'.join(map(str, [flowcell, rand_id, 'pass', zfill_num]))
                                                + ".fastq.gz"
                                                )
-        fastq_fail_file = os.path.join('fastq_fail', row.filename_fast5)
-        fastq_fail_file_renamed = os.path.join('fast5_fail',
+        fastq_fail_file = os.path.join('fastq_fail', row.filename_fastq)
+        fastq_fail_file_renamed = os.path.join('fastq_fail',
                                                '_'.join(map(str, [flowcell, rand_id, 'fail', zfill_num]))
                                                + ".fastq.gz"
                                                )
@@ -137,10 +137,14 @@ def tidy_summary_df(summary_df, config_df):
     # Rename fastq file to path
     summary_df = summary_df.merge(config_df, how='inner',
                                   left_on='zfill_num', right_on='zfill_num',
-                                  suffixes=("", "_config")) 
+                                  suffixes=("", "_config"))
 
+    # Rename old columns
+    rename_columns = ['filename_fast5', 'filename_fastq', 'run_id']
+    rename_columns_dict = {key: "%s_orig" % key for key in rename_columns}
+    summary_df.rename(columns=rename_columns_dict, inplace=True)
 
-    # Adjust the files
+    # Adjust the files (replace columns)
     summary_df['filename_fast5'] = summary_df.apply(lambda x: x.fast5_pass_file_renamed
                                                                   if x.passes_filtering
                                                                   else x.fast5_fail_file_renamed,
@@ -224,7 +228,7 @@ def main(args):
     # Grab all files and create new dataframe
     config_df = get_all_files(rand_id, summary_df)
 
-    # Rename sequencing_summary_file to bulk file
+    # Copy sequencing_summary_file to bulk file
     sequencing_summary_file_renamed = re.sub("_sequencing_summary.txt$",
                                              "_sequencing_summary.bulk.txt", sequencing_summary_file)
 
@@ -244,3 +248,4 @@ def main(args):
 
 if __name__ == "__main__":
     main()
+
