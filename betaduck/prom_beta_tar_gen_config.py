@@ -208,7 +208,7 @@ def main(args):
             filter(lambda x:
                    x.endswith("_sequencing_summary.txt")
                    and not x.endswith("_sequencing_summary.bulk.txt")
-		   and 'sequencing_run' in x,
+                   and 'sequencing_run' in x,
                    iter(os.listdir(summary_dir))
                    )
         )
