@@ -1,4 +1,5 @@
 #!/bin/bash
 umask 0002
-source activate python_3.7
-betaduck $@
+. /opt/conda/etc/profile.d/conda.sh
+conda activate betaduck
+betaduck "${@}"
