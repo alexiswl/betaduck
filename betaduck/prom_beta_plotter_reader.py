@@ -103,9 +103,6 @@ def read_summary_datasets(sequencing_summary_files, threads):
     # Reset the dtypes for the time columns
     dataset = set_summary_time_dtypes(dataset)
 
-    # Get pass column
-    dataset['pass'] = get_pass(dataset)
-
     # Get qualitative pass
     dataset['qualitative_pass'] = get_qualitative_pass(dataset)
 
@@ -154,12 +151,12 @@ def get_yield(dataset):
 
 def get_pass(dataset):
     # Determine if sequence passed quality
-    return dataset['mean_qscore_template'].apply(lambda x: True if x > 9 else False)
+    return dataset['passes_filtering']
 
 
 def get_qualitative_pass(dataset):
     # Describe the pass (Passed / Failed)
-    return dataset['pass'].apply(lambda x: 'Passed' if x is True else "Failed")
+    return dataset['passes_filtering'].apply(lambda x: 'Passed' if x is True else "Failed")
 
 
 def get_duration_ratio(dataset):
@@ -239,12 +236,12 @@ def convert_sample_time_columns(dataset):
 
 def get_quality_yield(dataset):
     # Get the yield per quality
-    return dataset.groupby(['pass'])['sequence_length_template'].cumsum()
+    return dataset.groupby(['passes_filtering'])['sequence_length_template'].cumsum()
 
 
 def get_quality_count(dataset):
     # Get the yield per quality
-    return dataset.groupby(['pass']).cumcount() + 1
+    return dataset.groupby(['passes_filtering']).cumcount() + 1
 
 
 def get_read_count(dataset):
