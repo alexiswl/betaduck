@@ -39,7 +39,7 @@ class Sample:
         self.alignment_objects = [FastqFile(fastq_file, output_dir, genome, w_lambda=self.w_lambda)
                                   for fastq_file in self.fastq_files]
         first_fastq_file = os.path.basename(os.path.normpath(self.fastq_files[0]))
-        self.flowcell, self.rnumber, _ = re.sub(".fastq.gz", "", first_fastq_file).split("_", 3)
+        self.flowcell, self.rnumber, _ = re.sub(".fastq.gz", "", first_fastq_file).split("_", 2)
         self.sample_prefix = '_'.join([genome.name, self.flowcell, self.rnumber])
         self.unaligned_merged_bam_file = os.path.join(output_dir, 'merged',
                                                       '_'.join(['unaligned', self.flowcell, self.rnumber])
@@ -255,12 +255,12 @@ def generate_pickle(alignment_obj):
                                 '-t', alignment_obj.genome.name,
                                 "-Q",
                                 alignment_obj.unaligned]
-    logging.info("Performing bam alignment qc: %s" % ' '.join(bam_alignment_qc_command))
+    #logging.info("Performing bam alignment qc: %s" % ' '.join(bam_alignment_qc_command))
     # noinspection PyArgumentList
-    bam_alignment_qc_proc = subprocess.run(bam_alignment_qc_command, capture_output=True)
-    if not bam_alignment_qc_proc.returncode == 0:
-        logging.warning("Bam QC returned non-zero exit code: %s" % bam_alignment_qc_command)
-        logging.warning("Stderr: %s" % bam_alignment_qc_proc.stderr.decode())
+    # bam_alignment_qc_proc = subprocess.run(bam_alignment_qc_command, capture_output=True)
+    # if not bam_alignment_qc_proc.returncode == 0:
+    #     logging.warning("Bam QC returned non-zero exit code: %s" % bam_alignment_qc_command)
+    #     logging.warning("Stderr: %s" % bam_alignment_qc_proc.stderr.decode())
 
 
 # Check arguments
