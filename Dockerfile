@@ -5,6 +5,7 @@ COPY ./docker-entrypoint.sh /
 
 # Install other dependencies (gcc)
 RUN apt-get update
+RUN apt-get install -y --no-install-recommends apt-utils
 RUN apt-get -y install gcc zlib1g-dev liblzma-dev libcurl4-gnutls-dev libssl-dev
 
 # Update conda
