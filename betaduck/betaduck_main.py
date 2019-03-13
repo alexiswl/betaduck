@@ -47,7 +47,7 @@ def main():
                                help="Path to run", required=True)
     config_parser.add_argument("--output-yaml-file",
                                help="Yaml file to create", required=True)
-    config_parser.add_argument("--sanitiser", action='store_true', default=False, 
+    config_parser.add_argument("--sanitiser", action='store_true', default=False,
                                help="run fastq sanitiser before generating config")
     config_parser.add_argument("--active", action='store_true', default=False,
                                help="Don't tar up the last folder as data may still be writing to there")
@@ -97,10 +97,10 @@ def main():
     align_parser.add_argument("--filter_lambda", dest="w_lambda",
                               default=False, action='store_true')
     align_parser.add_argument("--cs", type=str, default='long',
-			      choices=["long", "short", "none"],
-			      help="CS tag type")
+                              choices=["long", "short", "none"],
+                              help="CS tag type")
     align_parser.add_argument("--md", default=False, action='store_true',
-			      help="Add MD tag to BAM file")
+                              help="Add MD tag to BAM file")
     align_parser.add_argument("--threads", type=int, default=1)
     align_parser.set_defaults(func=run_function)
 
