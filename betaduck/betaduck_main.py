@@ -86,15 +86,15 @@ def main():
     # Args for alignment
     align_parser = subparsers.add_parser('align',
                                          help="Align reads to a reference genome")
-    align_parser.add_argument("--fastq_dir", type=str, required=True,
-                              help="Path to gzipped fastq files")
-    align_parser.add_argument("--output_dir", type=str, required=True,
+    align_parser.add_argument("--fastq-dir", type=str, required=True,
+                              help="Path to gzipped fastq files. Multiple paths separated by comma")
+    align_parser.add_argument("--output-dir", type=str, required=True,
                               help="Folder to place bam files")
-    align_parser.add_argument("--genome_dir", type=str, required=True,
+    align_parser.add_argument("--genome-dir", type=str, required=True,
                               help="Path to directory of genomes")
     align_parser.add_argument("--genome", type=str, required=True,
                               help="Name of genome in genome directory")
-    align_parser.add_argument("--filter_lambda", dest="w_lambda",
+    align_parser.add_argument("--filter-lambda", dest="w_lambda",
                               default=False, action='store_true')
     align_parser.add_argument("--cs", type=str, default='long',
                               choices=["long", "short", "none"],

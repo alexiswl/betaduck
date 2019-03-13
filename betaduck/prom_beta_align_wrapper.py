@@ -32,8 +32,8 @@ class Genome:
 
 
 class Sample:
-    def __init__(self, input_dir, output_dir, genome):
-        self.fastq_files = collect_fastqs(input_dir)
+    def __init__(self, input_dirs, output_dir, genome):
+        self.fastq_files = collect_fastqs(input_dirs)
         self.genome = genome
         self.w_lambda = genome.w_lambda
         self.alignment_objects = [FastqFile(fastq_file, output_dir, genome, w_lambda=self.w_lambda)
@@ -270,8 +270,9 @@ def check_args(args):
         os.mkdir(args.output_dir)
 
 
-def collect_fastqs(fastq_dir):
+def collect_fastqs(fastq_dirs):
     fastq_files = sorted([os.path.join(fastq_dir, fastq_file)
+                          for fastq_dir in fastq_dirs
                           for fastq_file in os.listdir(fastq_dir)
                           if fastq_file.endswith(".fastq.gz")])
 
@@ -464,7 +465,9 @@ def main(args):
     get_index(genome)
 
     # Get fastq and alignment files
-    sample = Sample(os.path.normpath(args.fastq_dir), os.path.normpath(args.output_dir), genome)
+    fastq_dirs = args.fastq_dir.split(",")
+    sample = Sample([os.path.normpath(fastq_dir) for fastq_dir in fastq_dirs],
+                    os.path.normpath(args.output_dir), genome)
 
     # Reduce thread count unless already 1.
     threads = 1 if args.threads == 1 else args.threads - 1
