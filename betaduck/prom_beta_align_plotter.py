@@ -101,10 +101,11 @@ def plot_by_error_type_split_lambda(df, organism_name, plot_name, hue='tag', tag
     if hue == 'tag':
         hue_order = [organism_name, 'lambda']
         plot_title = "Bar Plot of Alignment Type to %s And Lambda" % organism_name.capitalize()
-
     elif hue == 'quality':
         hue_order = ['pass', 'fail']
         plot_title = "Bar Plot of Alignment Typeto %s And Lambda" % organism_name.capitalize()
+    else:
+        sys.exit("Unrecognised hue")
 
     # Generate bar plot
     g = sns.catplot(x="alignment_type",
