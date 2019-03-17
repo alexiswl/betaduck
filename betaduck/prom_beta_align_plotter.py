@@ -226,7 +226,7 @@ def plot_alignment_length_by_attribute(df, organism_name, plot_name, attribute='
     # Reduce to 99th quantile
     max_quantile = 0.99
     max_read_length = df['aln_length'].quantile(max_quantile)
-    df.query('aln_length < %d' % max_read_length, inplace=True)
+    df = df.query('aln_length < %d' % max_read_length)
 
     # Seaborn nomenclature for lmplots/regplots are a little different
     sns.set_style('darkgrid')
