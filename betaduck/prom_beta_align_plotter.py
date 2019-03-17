@@ -14,19 +14,44 @@ import numpy as np
 import pickle
 import seaborn as sns
 import sys
+import humanfriendly
 
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 from matplotlib.ticker import FuncFormatter
 from matplotlib.pylab import savefig
-from betaduck.prom_beta_plotter_gen import y_yield_to_human_readable
-
+from betaduck.prom_beta_plotter_gen import y_yield_to_human_readable, x_yield_to_human_readable
+from pandas.api.types import CategoricalDtype
 
 # Set plot defaults
 plot_height = 8.27
 plot_width = 11.7
 plot_aspect = plot_width / plot_height
 bins = 50
+
+
+def reformat_human_friendly_cov(s):
+    """
+    humanfriendly module returns with a few quirks
+    1 = 1 byte ==> 1 b
+    2 = 2 bytes ==> 2 bytes
+    1000 = 1 KB ==> 1 Kb
+    """
+    s = s.replace(" byte", "")
+    s = s.replace(" bytes", "")
+    s = s.replace("B", "")
+    s = s.replace("s", "")
+    s += " X"
+    return s
+
+
+def y_cov_to_human_readable(y, position):
+    # Convert distribution to base pairs
+    if y == 0:
+        return 0
+    y = round(y, 3)
+    s = humanfriendly.format_size(y, binary=False)
+    return reformat_human_friendly_cov(s)
 
 
 def get_pickles(pickle_dir):
@@ -75,9 +100,9 @@ def plot_dist_split_lambda(df, organism_name, plot_name, attribute='accuracy'):
 
     # Set x and y labels
     g.ax.set_title("%s Plot to Human And Lambda" % attribute.capitalize)
-    g.ax.set_xlabel("Accuracy (%)")
+    g.ax.set_xlabel("%s (%%)" % attribute)
     g.ax.set_ylabel("")
-    g.ax.set_yticks([]);
+    g.ax.set_yticks([])
 
     # Format nicely
     g.fig.tight_layout()
@@ -129,4 +154,107 @@ def plot_by_error_type_split_lambda(df, organism_name, plot_name, hue='tag', tag
     g.fig.tight_layout()
 
     savefig("%s.png" % plot_name)
+
+
+def plot_counts_by_chromosome(df, chr_df, plot_name, w_lambda=False, chromosome_col='ref', chr_list=None):
+    # Set defaults
+    if w_lambda:
+        chr_to_drop = ["chrM", "NC_001416.1"]
+    else:
+        chr_to_drop = ["chrM"]
+
+    if chr_list is None:
+        # Factorize chromosomes
+        chr_list = list(filter(lambda x: not x.endswith("_random")
+                                         and not x.startswith("chrUn")
+                                         and not x in chr_to_drop,
+                               df[chromosome_col].unique().tolist()))
+
+    chromosomes_as_type = CategoricalDtype(categories=chr_list,
+                                           ordered=True)
+
+    # Get alignment_df
+    chr_counts = []
+    for ref, ref_df in df.groupby([chromosome_col]):
+        chr_counts.append([ref, ref_df.aln_length.sum()])
+    align_df = pd.DataFrame(chr_counts, columns=["chr", "basePairs"])
+    align_df['chr'] = align_df['chr'].astype(chromosomes_as_type)
+    align_df.dropna(inplace=True)
+    align_df.sort_values(by='chr', inplace=True)
+
+    # Merge with genome
+    align_df = align_df.merge(chr_df, on="chr")
+
+    # Generate coverage value
+    align_df['cov'] = align_df.apply(lambda x: x.basePairs / x.chrLength, axis='columns')
+
+    # Initialise plot figure
+    fig, ax = plt.subplots(1, figsize=(20, 10))
+
+    # Generate arrays for input
+    width = align_df['chrLengthProp']
+    height = align_df['cov']
+    x_pos = align_df['chrCumPropPoint']
+    x_label = align_df['chr'].tolist()
+
+    # Generate bar plot
+    ax.bar(x_pos, height, width=width)
+
+    # Reformat y axis
+    ax.yaxis.set_major_formatter(FuncFormatter(y_cov_to_human_readable))
+    ax.set_ylabel("Coverage", fontsize=14)
+
+    # Reformat x axis
+    plt.xticks(x_pos, x_label, rotation=45,
+               horizontalalignment='center')
+    ax.set_xlabel("Chromosome", fontsize=14)
+
+    ax.set_title("Coverage by chromosome plot", fontsize=20)
+
+    savefig("%s.png" % plot_name)
+
+
+def plot_alignment_length_by_attribute(df, organism_name, plot_name, attribute='accuracy'):
+    """
+    Generate a correlation plot of accuracy/identity by alignment length
+    :param df:
+    :param organism_name:
+    :param plot_name:
+    :param attribute:
+    :return:
+    """
+    # Reduce to 99th quantile
+    max_quantile = 0.99
+    max_read_length = df['aln_length'].quantile(max_quantile)
+    df.query('aln_length < %d' % max_read_length, inplace=True)
+
+    # Seaborn nomenclature for lmplots/regplots are a little different
+    sns.set_style('darkgrid')
+
+    g = sns.lmplot(x='aln_length', y=attribute, data=df.query("tag == @organism_name"),
+                   x_estimator=np.mean, truncate=True, x_bins=10, scatter_kws={'alpha': 0.1},
+                   legend=False)
+
+    # Zero base y-axis
+    y_max = df[attribute].mean() * 2
+    g.set(ylim=(0, y_max))
+
+    # Set axis labels
+    g.set_axis_labels("Alignment Length", "%s (%%)" % attribute.capitalize())
+
+    # Set axis formats
+    for ax in g.axes[0]:
+        ax.yaxis.set_major_formatter(ticker.PercentFormatter(xmax=1))
+        ax.xaxis.set_major_formatter(FuncFormatter(y_yield_to_human_readable))
+
+    # Set title
+    g.fig.suptitle("%s over Alignment Length for %s" % (attribute.capitalize(), organism_name))
+
+    # Reduce plot to make room for suptitle
+    g.fig.subplots_adjust(top=0.95)
+
+    # Save figure
+    savefig("%s.pore_speed.png" % plot_name)
+    plt.close('all')
+
 

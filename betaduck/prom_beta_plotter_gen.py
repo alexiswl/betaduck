@@ -466,6 +466,7 @@ def plot_venn_diagram_of_filtered_data(dataset, filter_dict, name, plots_dir):
     # Save and close figure
     savefig(os.path.join(plots_dir, "%s.venn_diagram.png" % name))
 
+
 def plot_quality_per_readlength(dataset, name, plots_dir):
     # Set max quantile, we need to reduce this for the read length histogram as it's not weighter
     max_quantile = 0.98
