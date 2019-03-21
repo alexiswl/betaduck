@@ -60,14 +60,14 @@ def get_pickles(pickle_dir):
             if pickle_file.endswith(".pickle")]
 
 
-def get_pickle_data(pickle_dir, pickle_files):
+def get_pickle_data(pickle_files):
     dfs = []
     for pickle_file in pickle_files:
         # ['PAD23566', '6fd51fb7', 'pass', '00004.lambda.pickle']
         flowcell, rand_id, quality, num_id = pickle_file.split("_", 3)
 
         # Open pickle and generate dataframe
-        with open(os.path.join(pickle_dir, pickle_file), 'rb') as pickle_h:
+        with open(pickle_file), 'rb') as pickle_h:
             pickle_dict = pickle.load(pickle_h)
 
         # Add to frame

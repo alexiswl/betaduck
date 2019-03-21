@@ -10,6 +10,9 @@ import shutil
 from Bio import SeqIO
 import wub.util.misc
 
+from betaduck.prom_beta_align_plotter import get_pickle_data, plot_dist_split_lambda, \
+    plot_by_error_type_split_lambda, plot_counts_by_chromosome, plot_alignment_length_by_attribute
+
 
 class Genome:
     def __init__(self, genome_dir, genome, w_lambda=False):
@@ -456,6 +459,33 @@ def run_wubber_multiqc(sample, qc_dir):
         logging.warning("Stderr: %s" % bam_multi_qc_proc.stderr.decode())
 
 
+def plot_outputs(pickle_df, output_dir, attribute_list, organism_name):
+
+    # Iterate through attributes (identity and accuracy)
+    for attribute in attribute_list:
+        # Plot accuracy distribution
+        plot_name = "%s.distribution.png" % attribute
+        plot_dist_split_lambda(pickle_df, organism_name, os.path.join(output_dir, plot_name),
+                               attribute=attribute)
+
+        # Plot length by attribute
+        plot_name = "%s.by_length.png" % attribute
+        plot_alignment_length_by_attribute(pickle_df, organism_name, os.path.join(output_dir, plot_name),
+                                           attribute=attribute)
+
+    # Bar plot of error types
+    plot_name = "mean_alignment_by_error_type.png"
+    plot_by_error_type_split_lambda(pickle_df, organism_name, os.path.join(output_dir, plot_name),
+                                    hue='tag', tag=None)
+
+    # Plot counts by chromosome
+    # Generate chrom_df
+    plot_name = "count_by_chromosome.png"
+    chr_df = ""
+    plot_counts_by_chromosome(pickle_df, chr_df, os.path.join(output_dir, plot_name), w_lambda=False,
+                              chromosome_col='ref', chr_list=None)
+
+
 def main(args):
     # Make sure files and directories  exist
     check_args(args)
@@ -496,12 +526,27 @@ def main(args):
     # Run wubqc in parallel
     run_wub_in_parallel(sample, threads)
 
+    # Read pickles
+    pickles = sample.host_alignment_pickles
+    if args.w_lambda:
+        pickles.extend(sample.lambda_alignment_pickles)
+
+    # Pick up pickle df
+    pickle_df = get_pickle_data(pickles)
+
     # Merge pickles
     # Don't know what these pickles look like yet.
     # merge_pickles(sample)
+    attribute_list = ['accuracy', 'identity']
+    plots_dir = os.path.join(args.output_dir, 'plots')
+    if not os.path.isdir(plots_dir):
+        os.mkdir(plots_dir)
+
+    # Generate plots
+    plot_outputs(pickle_df, plots_dir, attribute_list, organism_name)
 
     # Run multiqc
-    # run_wubber_multiqc(sample, qc_dir)
+    run_wubber_multiqc(sample, qc_dir)
 
 
 if __name__ == "__main__":
