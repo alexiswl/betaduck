@@ -506,12 +506,14 @@ def get_genome_df(reference_index, pickle_df):
     genome_df['chrCumSumLeft'] = genome_df.apply(lambda x: x.chrCumSum - x.chrLength, axis='columns')
     genome_df['chrCumSumRight'] = genome_df.apply(lambda x: x.chrCumSum + x.chrLength, axis='columns')
     genome_df['chrCumPropLeft'] = genome_df['chrCumSumLeft'].apply(lambda x: x / genome_df['chrCumSumLeft'].max())
-    genome_df['chrCumPropRight'] = genome_df['chrCumSumRight'].apply(lambda x: x / genome_df['chrCumSumRight'].max())
-    genome_df['chrCumPropPoint'] = genome_df.apply(lambda x: x.chrCumPropLeft + x.chrLengthProp / 2, axis='columns')
+    genome_df['chrCumPropRight'] = genome_df['chrCumSumRight'].apply(lambda x: x / genome_df['chrCumSumRight'].max()) 
     genome_df['chrLengthProp'] = genome_df['chrLength'].apply(lambda x: x / genome_df['chrCumSum'].max())
+    genome_df['chrCumPropPoint'] = genome_df.apply(lambda x: x.chrCumPropLeft + x.chrLengthProp / 2, axis='columns')
 
     genome_df['chr'] = genome_df['chr'].astype(get_chromosomes(pickle_df))
     genome_df.dropna(inplace=True)
+
+    return genome_df
 
 
 def get_alignment_df(pickle_df, genome_df, drop_lambda=False):
@@ -597,7 +599,10 @@ def main(args):
         os.mkdir(plots_dir)
 
     # Get genome df
-    reference_index = re.sub(".fa", ".fai", sample.genome.host_genome_path)
+    if args.w_lambda:
+        reference_index = sample.genome.host_w_lambda_genome_path + ".fai"
+    else:
+        reference_index = sample.genome.host_genome_path + ".fai"
     genome_df = get_genome_df(reference_index, pickle_df)
 
     # Get alignment df
@@ -607,7 +612,7 @@ def main(args):
     plot_outputs(pickle_df, alignment_df, plots_dir, attribute_list, sample.genome.name)
 
     # Run multiqc
-    run_wubber_multiqc(sample, qc_dir)
+    #run_wubber_multiqc(sample, qc_dir)
 
 
 if __name__ == "__main__":

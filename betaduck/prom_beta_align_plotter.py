@@ -112,7 +112,7 @@ def plot_dist_split_lambda(df, organism_name, plot_name, attribute='accuracy'):
 
 
 def plot_by_error_type_split_lambda(df, organism_name, plot_name, hue='tag', tag=None):
-    alignment_types = ['name', 'match', 'mismatch', 'insertion', 'deletion']
+    alignment_types = ['match', 'mismatch', 'insertion', 'deletion']
     id_vars = ['name', 'tag', 'quality']
     df_melted = pd.melt(df[id_vars + alignment_types],
                         id_vars=id_vars,
