@@ -67,7 +67,7 @@ def get_pickle_data(pickle_files):
         flowcell, rand_id, quality, num_id = pickle_file.split("_", 3)
 
         # Open pickle and generate dataframe
-        with open(pickle_file), 'rb') as pickle_h:
+        with open(pickle_file, 'rb') as pickle_h:
             pickle_dict = pickle.load(pickle_h)
 
         # Add to frame
@@ -156,37 +156,7 @@ def plot_by_error_type_split_lambda(df, organism_name, plot_name, hue='tag', tag
     savefig("%s.png" % plot_name)
 
 
-def plot_counts_by_chromosome(df, chr_df, plot_name, w_lambda=False, chromosome_col='ref', chr_list=None):
-    # Set defaults
-    if w_lambda:
-        chr_to_drop = ["chrM", "NC_001416.1"]
-    else:
-        chr_to_drop = ["chrM"]
-
-    if chr_list is None:
-        # Factorize chromosomes
-        chr_list = list(filter(lambda x: not x.endswith("_random")
-                                         and not x.startswith("chrUn")
-                                         and not x in chr_to_drop,
-                               df[chromosome_col].unique().tolist()))
-
-    chromosomes_as_type = CategoricalDtype(categories=chr_list,
-                                           ordered=True)
-
-    # Get alignment_df
-    chr_counts = []
-    for ref, ref_df in df.groupby([chromosome_col]):
-        chr_counts.append([ref, ref_df.aln_length.sum()])
-    align_df = pd.DataFrame(chr_counts, columns=["chr", "basePairs"])
-    align_df['chr'] = align_df['chr'].astype(chromosomes_as_type)
-    align_df.dropna(inplace=True)
-    align_df.sort_values(by='chr', inplace=True)
-
-    # Merge with genome
-    align_df = align_df.merge(chr_df, on="chr")
-
-    # Generate coverage value
-    align_df['cov'] = align_df.apply(lambda x: x.basePairs / x.chrLength, axis='columns')
+def plot_counts_by_chromosome(align_df, plot_name):
 
     # Initialise plot figure
     fig, ax = plt.subplots(1, figsize=(20, 10))

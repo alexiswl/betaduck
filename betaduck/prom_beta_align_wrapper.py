@@ -9,6 +9,8 @@ import concurrent.futures
 import shutil
 from Bio import SeqIO
 import wub.util.misc
+import pandas as pd
+from pandas.api.types import CategoricalDtype
 
 from betaduck.prom_beta_align_plotter import get_pickle_data, plot_dist_split_lambda, \
     plot_by_error_type_split_lambda, plot_counts_by_chromosome, plot_alignment_length_by_attribute
@@ -459,7 +461,7 @@ def run_wubber_multiqc(sample, qc_dir):
         logging.warning("Stderr: %s" % bam_multi_qc_proc.stderr.decode())
 
 
-def plot_outputs(pickle_df, output_dir, attribute_list, organism_name):
+def plot_outputs(pickle_df, alignment_df, output_dir, attribute_list, organism_name):
 
     # Iterate through attributes (identity and accuracy)
     for attribute in attribute_list:
@@ -481,9 +483,61 @@ def plot_outputs(pickle_df, output_dir, attribute_list, organism_name):
     # Plot counts by chromosome
     # Generate chrom_df
     plot_name = "count_by_chromosome.png"
-    chr_df = ""
-    plot_counts_by_chromosome(pickle_df, chr_df, os.path.join(output_dir, plot_name), w_lambda=False,
-                              chromosome_col='ref', chr_list=None)
+
+    plot_counts_by_chromosome(alignment_df, os.path.join(output_dir, plot_name))
+
+
+def get_chromosomes(pickle_df):
+    chromosomes = list(filter(lambda x: not x.endswith("_random") and not x.startswith("chrUn"),
+                       pickle_df['ref'].unique().tolist()))
+    chromosomes_as_type = CategoricalDtype(categories=chromosomes,
+                                           ordered=True)
+    return chromosomes_as_type
+
+
+def get_genome_df(reference_index, pickle_df):
+    genome_df = pd.read_csv(reference_index, delim_whitespace=True, header=None,  # sep="\t", header=None,
+                            names=["chr", "chrLength", "chrCumSum", "miscell1", "miscell2"],
+                            usecols=["chr", 'chrLength'])
+
+
+    genome_df['chrCumSum'] = genome_df['chrLength'].cumsum()
+    # And divide the latter
+    genome_df['chrCumSumLeft'] = genome_df.apply(lambda x: x.chrCumSum - x.chrLength, axis='columns')
+    genome_df['chrCumSumRight'] = genome_df.apply(lambda x: x.chrCumSum + x.chrLength, axis='columns')
+    genome_df['chrCumPropLeft'] = genome_df['chrCumSumLeft'].apply(lambda x: x / genome_df['chrCumSumLeft'].max())
+    genome_df['chrCumPropRight'] = genome_df['chrCumSumRight'].apply(lambda x: x / genome_df['chrCumSumRight'].max())
+    genome_df['chrCumPropPoint'] = genome_df.apply(lambda x: x.chrCumPropLeft + x.chrLengthProp / 2, axis='columns')
+    genome_df['chrLengthProp'] = genome_df['chrLength'].apply(lambda x: x / genome_df['chrCumSum'].max())
+
+    genome_df['chr'] = genome_df['chr'].astype(get_chromosomes(pickle_df))
+    genome_df.dropna(inplace=True)
+
+
+def get_alignment_df(pickle_df, genome_df, drop_lambda=False):
+    chr_counts = []
+    for ref, ref_df in pickle_df.groupby(['ref']):
+        chr_counts.append([ref, ref_df.aln_length.sum()])
+    align_df = pd.DataFrame(chr_counts, columns=["chr", "basePairs"])
+
+    align_df['chr'] = align_df['chr'].astype(get_chromosomes(pickle_df))
+    align_df.dropna(inplace=True)
+
+    align_df.sort_values(by='chr', inplace=True)
+
+    align_df = align_df.merge(genome_df, on="chr")
+
+    align_df['cov'] = align_df.apply(lambda x: x.basePairs / x.chrLength, axis='columns')
+
+    # Drop lambda and mito genome
+    if drop_lambda:
+        chr_to_drop = ["chrM", "NC_001416.1"]
+    else:
+        chr_to_drop = ["chrM"]
+
+    align_df.query("~(chr==@chr_to_drop)", inplace=True)
+
+    return align_df
 
 
 def main(args):
@@ -542,8 +596,15 @@ def main(args):
     if not os.path.isdir(plots_dir):
         os.mkdir(plots_dir)
 
+    # Get genome df
+    reference_index = re.sub(".fa", ".fai", sample.genome.host_genome_path)
+    genome_df = get_genome_df(reference_index, pickle_df)
+
+    # Get alignment df
+    alignment_df = get_alignment_df(pickle_df, genome_df, drop_lambda=args.w_lambda)
+
     # Generate plots
-    plot_outputs(pickle_df, plots_dir, attribute_list, organism_name)
+    plot_outputs(pickle_df, alignment_df, plots_dir, attribute_list, sample.genome.name)
 
     # Run multiqc
     run_wubber_multiqc(sample, qc_dir)
