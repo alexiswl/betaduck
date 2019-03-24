@@ -2,7 +2,8 @@ name: python_3.7
 channels:
    - conda-forge
    - bioconda
-   - defaults 
+   - defaults
+channel_priority: strict
 dependencies:
    - asn1crypto=0.24.0=py37_0
    - attrs=19.1.0=py37_1
