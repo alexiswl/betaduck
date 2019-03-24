@@ -1,4 +1,4 @@
-FROM continuumio/miniconda3:latest
+FROM continuumio/miniconda3:4.5.12
 
 # Copy the entry point for the user
 COPY ./docker-entrypoint.sh /
