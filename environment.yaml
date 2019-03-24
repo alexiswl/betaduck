@@ -1,9 +1,9 @@
---- environment.yaml	2019-03-24 21:29:46.543447644 +1100
-+++ environment.yaml.bak	2019-03-13 22:38:23.022329028 +1100
-@@ -4,27 +4,36 @@
+name: python_3.7
+channels:
+   - conda-forge
    - bioconda
-   - defaults
- dependencies:
+   - defaults 
+dependencies:
    - asn1crypto=0.24.0=py37_0
    - attrs=19.1.0=py37_1
    - backcall=0.1.0=py37_0
