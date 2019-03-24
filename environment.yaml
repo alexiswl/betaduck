@@ -131,5 +131,4 @@ dependencies:
      - pysam==0.15.2
      - pytest==4.3.1
      - tqdm==4.31.1
-     - wincertstore==0.2
-     - wub==0.3.0 
+     - wincertstore==0.2 
