@@ -466,12 +466,12 @@ def plot_outputs(pickle_df, alignment_df, output_dir, attribute_list, organism_n
     # Iterate through attributes (identity and accuracy)
     for attribute in attribute_list:
         # Plot accuracy distribution
-        plot_name = "%s.distribution.png" % attribute
+        plot_name = "%s.distribution" % attribute
         plot_dist_split_lambda(pickle_df, organism_name, os.path.join(output_dir, plot_name),
                                attribute=attribute)
 
         # Plot length by attribute
-        plot_name = "%s.by_length.png" % attribute
+        plot_name = "%s.by_length" % attribute
         plot_alignment_length_by_attribute(pickle_df, organism_name, os.path.join(output_dir, plot_name),
                                            attribute=attribute)
 

@@ -99,7 +99,7 @@ def plot_dist_split_lambda(df, organism_name, plot_name, attribute='accuracy'):
     g.ax.legend(framealpha=0.5)
 
     # Set x and y labels
-    g.ax.set_title("%s Plot to Human And Lambda" % attribute.capitalize)
+    g.ax.set_title("%s Plot to Human And Lambda" % attribute.capitalize())
     g.ax.set_xlabel("%s (%%)" % attribute)
     g.ax.set_ylabel("")
     g.ax.set_yticks([])
