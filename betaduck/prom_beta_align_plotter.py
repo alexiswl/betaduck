@@ -67,6 +67,10 @@ def get_pickle_data(pickle_files):
         flowcell, rand_id, quality, num_id = pickle_file.split("_", 3)
 
         # Open pickle and generate dataframe
+        # Check pickle exists
+        if not os.path.isfile(pickle_file):
+            print("Warning, cannot find pickle")
+            continue
         with open(pickle_file, 'rb') as pickle_h:
             pickle_dict = pickle.load(pickle_h)
 
