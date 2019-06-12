@@ -42,9 +42,8 @@ def set_args(args):
     :return:
     """
 
-    # Make sure run directory is accurate
+    # Make sure run directory is accurate 
     setattr(args, "run_dir", os.path.normpath(args.run_dir))
-
     return args
 
 
@@ -126,21 +125,23 @@ def rename_fast5_files(input_fast5_files, fast5_directory, dry_run):
     :param fast5_directory:
     :return:
     """
-    fast5_file_dummy = input_fast5_files[0]
-    flowcell_id, run_id, counter_fast5 = fast5_file_dummy.rsplit("_", 2)
-    counter, _ = counter_fast5.split(".", 1)
-    counter_zfill = counter.zfill(5)
-
-    date, time, device_id, flowcell_id, trunc_run_id = fast5_directory.rsplit("_", 4)
 
     new_fast5_files = []
 
-    for fast5_file in input_fast5_files:
-        new_fast5_file = '_'.join(map(str, flowcell_id, trunc_run_id, counter_zfill)) + ".fast5"
+    for fast5_file in input_fast5_files: 
+        flowcell_id, run_id, counter_fast5 = fast5_file.rsplit("_", 2)
+        counter, _ = counter_fast5.split(".", 1)
+        counter_zfill = counter.zfill(5)
+
+        date, time, device_id, fid, trunc_run_id = os.path.basename(os.path.dirname(fast5_directory)).rsplit("_", 4)
+    
+        new_fast5_file = '_'.join(map(str, [flowcell_id, trunc_run_id, counter_zfill])) + ".fast5"
         new_fast5_files.append(new_fast5_file)
         logging.info("Moving file %s to %s" % (fast5_file, new_fast5_file))
         if dry_run:
             continue
+        elif os.path.isfile(os.path.join(fast5_directory, new_fast5_file)):
+            logging.error("new file already exists. Not renaming")
         else:
             shutil.move(os.path.join(fast5_directory, fast5_file),
                         os.path.join(fast5_directory, new_fast5_file))
