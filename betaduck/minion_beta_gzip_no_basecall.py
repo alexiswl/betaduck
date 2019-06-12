@@ -6,7 +6,7 @@ import psutil
 import logging
 import subprocess
 import sys
-import concurrent
+import concurrent.futures
 
 # Set logging
 logging.basicConfig(level=logging.INFO)
@@ -38,7 +38,7 @@ def set_args(args):
     """
 
     # Make sure run directory is accurate
-    setattr(args, "run_dir", os.path.basename(os.path.normpath(args.run_dir)))
+    setattr(args, "run_dir", os.path.normpath(args.run_dir))
 
     return args
 
@@ -81,7 +81,7 @@ def get_fast5_files(fast5_directory, overwrite=True):
     """
     fast5_files = [fast5_file
                    for fast5_file in os.listdir(fast5_directory)
-                   if os.path.isfile(os.path.join(fast5_directory, fast5_file)
+                   if os.path.isfile(os.path.join(fast5_directory, fast5_file))
                    and fast5_file.endswith(".fast5")
                    and not is_open(fast5_file)
                    and not check_overwrite(os.path.join(fast5_directory, fast5_file), overwrite)]
@@ -89,7 +89,7 @@ def get_fast5_files(fast5_directory, overwrite=True):
     return fast5_files
 
 
-def compress_fast5_file(fast5_file, debug=False):
+def compress_fast5_file(fast5_file, fast5_directory, debug=False):
     """
     Simpler command, compress fastq file using gzip command
     :param fastq_file:
@@ -100,11 +100,12 @@ def compress_fast5_file(fast5_file, debug=False):
     gzip_command = ['gzip', '--best', fast5_file]
 
     logging.info("Gzipping file %s with best compression" % fast5_file)
+    logging.info("Command is %s" % gzip_command)
 
     if debug:
         return
     # Run through subprocess
-    gzip_proc = subprocess.run(gzip_command, capture_output=True)
+    gzip_proc = subprocess.run(gzip_command, cwd=fast5_directory, capture_output=True)
 
     if not gzip_proc.returncode == 0:
         logging.error("Gzip command '%s' returned non-zero exit code" % ' '.join(gzip_command))
@@ -113,13 +114,13 @@ def compress_fast5_file(fast5_file, debug=False):
         logging.info("Gzip of %s was successful" % fast5_file)
 
 
-def compress_all_fast5_files(input_fast5_files, threads=1, debug=False):
+def compress_all_fast5_files(input_fast5_files, fast5_directory, threads=1, debug=False):
     # Run simultaneously
     with concurrent.futures.ThreadPoolExecutor(max_workers=threads) as executor:
-        iterator = {executor.submit(compress_fast5_file, fast5_file, debug=debug)
-                    for fast5_file in zip(input_fast5_files)}
+        iterator = {executor.submit(compress_fast5_file, fast5_file, fast5_directory, debug=debug)
+                    for fast5_file in input_fast5_files}
         for item in concurrent.futures.as_completed(iterator):
-            output = iterator[item]
+            #output = iterator[item]
             success = item.result()
 
 
@@ -133,7 +134,8 @@ def main():
     fast5_files = get_fast5_files(fast5_directory)
 
     # Zip files (through concurrent futures tool).
-    compress_all_fast5_files(fast5_files, threads=args.threads, debug=args.dry_run)
+    compress_all_fast5_files(fast5_files, fast5_directory, threads=args.threads, debug=args.dry_run)
 
 
-
+if __name__=="__main__":
+    main()
