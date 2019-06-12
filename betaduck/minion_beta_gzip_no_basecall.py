@@ -3,6 +3,7 @@
 import argparse
 import os
 import psutil
+import shutil
 import logging
 import subprocess
 import sys
@@ -10,6 +11,7 @@ import concurrent.futures
 
 # Set logging
 logging.basicConfig(level=logging.INFO)
+
 
 def get_args():
     # Tar command
@@ -24,6 +26,9 @@ def get_args():
                             help="Overwrite files if they already exist")
     tar_parser.add_argument("--threads", default=1, type=int,
                             help="Number of folders to zip up simultaneously")
+    tar_parser.add_argument("--rename", default=False, action='store_true',
+                            help="Do you wish to rename the files. "
+                                 "<FLOWCELL>_<RUN_ID>_<N>.fast5 to <FLOWCELL>_<TRUNC_ID>_<ZFILL_N>.fast5")
 
     args = tar_parser.parse_args()
 
@@ -114,6 +119,35 @@ def compress_fast5_file(fast5_file, fast5_directory, debug=False):
         logging.info("Gzip of %s was successful" % fast5_file)
 
 
+def rename_fast5_files(input_fast5_files, fast5_directory, dry_run):
+    """
+    Rename the fast5 files to better naming convention
+    :param input_fast5_files:
+    :param fast5_directory:
+    :return:
+    """
+    fast5_file_dummy = input_fast5_files[0]
+    flowcell_id, run_id, counter_fast5 = fast5_file_dummy.rsplit("_", 2)
+    counter, _ = counter_fast5.split(".", 1)
+    counter_zfill = counter.zfill(5)
+
+    date, time, device_id, flowcell_id, trunc_run_id = fast5_directory.rsplit("_", 4)
+
+    new_fast5_files = []
+
+    for fast5_file in input_fast5_files:
+        new_fast5_file = '_'.join(map(str, flowcell_id, trunc_run_id, counter_zfill)) + ".fast5"
+        new_fast5_files.append(new_fast5_file)
+        logging.info("Moving file %s to %s" % (fast5_file, new_fast5_file))
+        if dry_run:
+            continue
+        else:
+            shutil.move(os.path.join(fast5_directory, fast5_file),
+                        os.path.join(fast5_directory, new_fast5_file))
+
+    return new_fast5_files
+
+
 def compress_all_fast5_files(input_fast5_files, fast5_directory, threads=1, debug=False):
     # Run simultaneously
     with concurrent.futures.ThreadPoolExecutor(max_workers=threads) as executor:
@@ -132,6 +166,12 @@ def main():
 
     # Get files
     fast5_files = get_fast5_files(fast5_directory)
+    if len(fast5_files) == 0:
+        logging.info("No fast5 files found. Exiting")
+        sys.exit()
+
+    if args.rename:
+        fast5_files = rename_fast5_files(fast5_files, fast5_directory, args.dry_run)
 
     # Zip files (through concurrent futures tool).
     compress_all_fast5_files(fast5_files, fast5_directory, threads=args.threads, debug=args.dry_run)
