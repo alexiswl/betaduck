@@ -21,7 +21,7 @@ def run_function(args):
         import betaduck.prom_beta_tar_wrapper as command_to_run
     elif args.command == "plot":
         import betaduck.prom_beta_plotter_wrapper as command_to_run
-    if args.command == "align":
+    elif args.command == "align":
         import betaduck.prom_beta_align_wrapper as command_to_run
     else:
         return
