@@ -123,6 +123,7 @@ def rename_fast5_files(input_fast5_files, fast5_directory, dry_run):
     Rename the fast5 files to better naming convention
     :param input_fast5_files:
     :param fast5_directory:
+    :param dry_run:
     :return:
     """
 
