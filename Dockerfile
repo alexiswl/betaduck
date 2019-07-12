@@ -8,9 +8,6 @@ RUN apt-get update
 RUN apt-get install -y --no-install-recommends apt-utils
 RUN apt-get -y install gcc zlib1g-dev liblzma-dev libcurl4-gnutls-dev libssl-dev
 
-# Update conda
-RUN conda update -n base conda --yes
-RUN conda update --all --yes
 # Install pip
 RUN conda install pip --yes
 
@@ -22,7 +19,6 @@ WORKDIR ./betaduck
 RUN pip install --upgrade pip
 
 # Install environment
-RUN cat environment.yaml
 RUN conda env create --name betaduck --file environment.yaml
 
 # Source env

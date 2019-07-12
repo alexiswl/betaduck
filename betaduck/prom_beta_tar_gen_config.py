@@ -60,22 +60,39 @@ def get_all_files(rand_id, summary_df):
     config_list = []
 
     # Grab fastq and fast5 values
-    unique_files = summary_df[['filename_fastq', 'filename_fast5']].drop_duplicates()
+    if 'filename_fastq' in summary_df.columns.tolist() and 'filename_fast5' in summary_df.columns.tolist():
+        # only if has been basecalled directly
+        unique_files = summary_df[['filename_fastq', 'filename_fast5']].drop_duplicates()
+        basecall_direct = True
+    elif 'filename' in summary_df.columns.tolist():
+        unique_files = summary_df[['filename']]
+        basecall_direct = False
+    else:
+        logging.error("Could not find right filename columns in %s" % ','.join(summary_df.columns.tolist()))
+        sys.exit(1)
+        
 
     # Add to config dict
     for row in unique_files.itertuples():
         flowcell, run_id, num = row.filename_fastq.split(".", 1)[0].split("_", 3)
         zfill_num = str(num).zfill(zfill)
-        fast5_pass_file = os.path.join('fast5_pass', row.filename_fast5)
-        fast5_pass_file_renamed = os.path.join('fast5_pass',
-                                               '_'.join(map(str, [flowcell, rand_id, 'pass', zfill_num]))
+        if basecall_direct:
+            fast5_pass_file = os.path.join('fast5_pass', row.filename_fast5)
+            fast5_pass_file_renamed = os.path.join('fast5_pass',
+                                                   '_'.join(map(str, [flowcell, rand_id, 'pass', zfill_num]))
+                                                   + ".fast5.gz"
+                                                   )
+            fast5_fail_file = os.path.join('fast5_fail', row.filename_fast5)
+            fast5_fail_file_renamed = os.path.join('fast5_fail',
+                                                   '_'.join(map(str, [flowcell, rand_id, 'fail', zfill_num]))
+                                                   + ".fast5.gz"
+                                                   ) 
+        else:
+            fast5_file = os.path.join('fast5', row.filename)
+            fast5_file_renamed = os.path.join('fast5', 
+                                              '_'.join(map(str, [flowcell, rand_id, zfill_num])) 
                                                + ".fast5.gz"
-                                               )
-        fast5_fail_file = os.path.join('fast5_fail', row.filename_fast5)
-        fast5_fail_file_renamed = os.path.join('fast5_fail',
-                                               '_'.join(map(str, [flowcell, rand_id, 'fail', zfill_num]))
-                                               + ".fast5.gz"
-                                               )
+                                              )
         fastq_pass_file = os.path.join('fastq_pass', row.filename_fastq)
         fastq_pass_file_renamed = os.path.join('fastq_pass',
                                                '_'.join(map(str, [flowcell, rand_id, 'pass', zfill_num]))
