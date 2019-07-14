@@ -26,11 +26,17 @@ def get_args():
     parser.add_argument('--fastq-output-pass-path',
                         help="Path to output fastq pass file", required=True)
     parser.add_argument("--fast5-input-pass-path",
-                        help="Path to input fast5 pass file", required=True)
+                        help="Path to input fast5 pass file", required=False)
     parser.add_argument("--fast5-output-pass-path",
-                        help="Path to output fast5 pass file", required=True)
+                        help="Path to output fast5 pass file", required=False)
+    parser.add_argument("--fast5-input-path",
+                        help="Path to input fast5 file", required=False)
+    parser.add_argument("--fast5-output-path",
+                        help="Path to output fast5 file", required=False)
     parser.add_argument("--md5-pass-fast5",
-                        help="File to append to md5sum for pass fast5 files", required=True)
+                        help="File to append to md5sum for pass fast5 files", required=False)
+    parser.add_argument("--md5-fast5",
+                        help="File to append to md5sum for fast5 files", required=False)
     parser.add_argument("--md5-pass-fastq",
                         help="File to append to md5sum for pass fastq files", required=True)
     parser.add_argument('--fastq-input-fail-path',
@@ -38,11 +44,11 @@ def get_args():
     parser.add_argument('--fastq-output-fail-path',
                         help="Path to output fastq fail file", required=True)
     parser.add_argument("--fast5-input-fail-path",
-                        help="Path to input fast5 fail file", required=True)
+                        help="Path to input fast5 fail file", required=False)
     parser.add_argument("--fast5-output-fail-path",
-                        help="Path to output fast5 fail file", required=True)
+                        help="Path to output fast5 fail file", required=False)
     parser.add_argument("--md5-fail-fast5",
-                        help="File to append to md5sum for fail fast5 files", required=True)
+                        help="File to append to md5sum for fail fast5 files", required=False)
     parser.add_argument("--md5-fail-fastq",
                         help="File to append to md5sum for fail fastq files", required=True)
     parser.add_argument("--inplace", action='store_true', default=False, help='Remove uncompressed files')
@@ -122,12 +128,17 @@ def main():
         logger.error("Warning, neither pass nor fail fastq file exist")
     
     # Gzip up and move fast5 files
-    if os.path.isfile(args.fast5_input_pass_path):
-        zip_and_move_file(args.fast5_input_pass_path, args.fast5_output_pass_path,
-                          overwrite=args.overwrite, inplace=args.inplace, dry_run=args.dry_run)
-    if os.path.isfile(args.fast5_input_fail_path):
-        zip_and_move_file(args.fast5_input_fail_path, args.fast5_output_fail_path,
-                          overwrite=args.overwrite, inplace=args.inplace, dry_run=args.dry_run)
+    if args.fast5_input_pass_path is not None and args.fast5_input_fail_path is not None:
+        if os.path.isfile(args.fast5_input_pass_path):
+            zip_and_move_file(args.fast5_input_pass_path, args.fast5_output_pass_path,
+                              overwrite=args.overwrite, inplace=args.inplace, dry_run=args.dry_run)
+        if os.path.isfile(args.fast5_input_fail_path):
+            zip_and_move_file(args.fast5_input_fail_path, args.fast5_output_fail_path,
+                              overwrite=args.overwrite, inplace=args.inplace, dry_run=args.dry_run)
+    else:
+        if os.path.isfile(args.fast5_input_path):
+            zip_and_move_file(args.fast5_input_path, args.fast5_output_path,
+                              overwrite=args.overwrite, inplace=args.inplace, dry_run=args.dry_run)
     # Move fastq folders
     if os.path.isfile(args.fastq_input_pass_path):
         zip_and_move_file(args.fastq_input_pass_path, args.fastq_output_pass_path,

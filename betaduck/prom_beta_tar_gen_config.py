@@ -30,6 +30,14 @@ config_columns = ['zfill_num', 'rand_id',
                   'md5_fast5_pass', 'md5_fastq_pass',
                   'md5_fast5_fail', 'md5_fastq_fail']
 
+re_basecalled_columns = ['zfill_num', 'rand_id',
+                         'fast5_file', 'fast5_file_renamed',
+                         'fastq_pass_file', 'fastq_pass_file_renamed',
+                         'fastq_fail_file', 'fastq_fail_file_renamed',
+                         'md5_fast5',
+                         'md5_fastq_pass',
+                         'md5_fastq_fail'
+                         ]
 
 def get_all_files(rand_id, summary_df):
     """
@@ -70,13 +78,13 @@ def get_all_files(rand_id, summary_df):
     else:
         logging.error("Could not find right filename columns in %s" % ','.join(summary_df.columns.tolist()))
         sys.exit(1)
-        
+
 
     # Add to config dict
     for row in unique_files.itertuples():
-        flowcell, run_id, num = row.filename_fastq.split(".", 1)[0].split("_", 3)
-        zfill_num = str(num).zfill(zfill)
         if basecall_direct:
+            flowcell, run_id, num = row.filename_fastq.split(".", 1)[0].split("_", 3)
+            zfill_num = str(num).zfill(zfill)
             fast5_pass_file = os.path.join('fast5_pass', row.filename_fast5)
             fast5_pass_file_renamed = os.path.join('fast5_pass',
                                                    '_'.join(map(str, [flowcell, rand_id, 'pass', zfill_num]))
@@ -86,38 +94,54 @@ def get_all_files(rand_id, summary_df):
             fast5_fail_file_renamed = os.path.join('fast5_fail',
                                                    '_'.join(map(str, [flowcell, rand_id, 'fail', zfill_num]))
                                                    + ".fast5.gz"
-                                                   ) 
+                                                   )
+
+            fastq_pass_file = os.path.join('fastq_pass', row.filename_fastq)
+            fastq_pass_file_renamed = os.path.join('fastq_pass',
+                                                   '_'.join(map(str, [flowcell, rand_id, 'pass', zfill_num]))
+                                                   + ".fastq.gz"
+                                                   )
+            fastq_fail_file = os.path.join('fastq_fail', row.filename_fastq)
+            fastq_fail_file_renamed = os.path.join('fastq_fail',
+                                                   '_'.join(map(str, [flowcell, rand_id, 'fail', zfill_num]))
+                                                   + ".fastq.gz"
+                                                   )
+
+
         else:
+            flowcell, run_id, num = row.filename.split(".", 1)[0].split("_", 3)
+            zfill_num = str(num).zfill(zfill)
             fast5_file = os.path.join('fast5', row.filename)
-            fast5_file_renamed = os.path.join('fast5', 
-                                              '_'.join(map(str, [flowcell, rand_id, zfill_num])) 
-                                               + ".fast5.gz"
-                                              )
-        fastq_pass_file = os.path.join('fastq_pass', row.filename_fastq)
-        fastq_pass_file_renamed = os.path.join('fastq_pass',
-                                               '_'.join(map(str, [flowcell, rand_id, 'pass', zfill_num]))
-                                               + ".fastq.gz"
-                                               )
-        fastq_fail_file = os.path.join('fastq_fail', row.filename_fastq)
-        fastq_fail_file_renamed = os.path.join('fastq_fail',
-                                               '_'.join(map(str, [flowcell, rand_id, 'fail', zfill_num]))
-                                               + ".fastq.gz"
-                                               )
+            fast5_file_renamed = fast5_file + ".gz"
+            fastq_pass_file = os.path.join('fastq_pass', row.filename)
+            fastq_pass_file_renamed = fastq_pass_file + ".gz"
+            fastq_fail_file = os.path.join('fastq_fail', row.filename)
+            fastq_fail_file_renamed = fastq_fail_file + ".gz"
 
         # Add md5sum outputs
         output_md5sum_fast5_pass = os.path.join("fast5_pass", "checksum.fast5.pass.md5")
         output_md5sum_fastq_pass = os.path.join("fastq_pass", "checksum.fastq.pass.md5")
+        output_md5sum_fast5 = os.path.join("fast5", "checksum.fast5.md5")
         output_md5sum_fast5_fail = os.path.join("fast5_fail", "checksum.fast5.fail.md5")
         output_md5sum_fastq_fail = os.path.join("fast5_fail", "checksum.fastq.fail.md5")
 
-        config_list.append(pd.Series(data=[zfill_num, rand_id,
-                                           fast5_pass_file, fast5_pass_file_renamed,
-                                           fast5_fail_file, fast5_fail_file_renamed,
-                                           fastq_pass_file, fastq_pass_file_renamed,
-                                           fastq_fail_file, fastq_fail_file_renamed,
-                                           output_md5sum_fast5_pass, output_md5sum_fastq_pass,
-                                           output_md5sum_fast5_fail, output_md5sum_fastq_fail],
-                                     index=config_columns))
+        if basecall_direct:
+            config_list.append(pd.Series(data=[zfill_num, rand_id,
+                                               fast5_pass_file, fast5_pass_file_renamed,
+                                               fast5_fail_file, fast5_fail_file_renamed,
+                                               fastq_pass_file, fastq_pass_file_renamed,
+                                               fastq_fail_file, fastq_fail_file_renamed,
+                                               output_md5sum_fast5_pass, output_md5sum_fastq_pass,
+                                               output_md5sum_fast5_fail, output_md5sum_fastq_fail],
+                                         index=config_columns))
+        else:
+            config_list.append(pd.Series(data=[zfill_num, rand_id,
+                                               fast5_file, fast5_file_renamed,
+                                               fastq_pass_file, fastq_pass_file_renamed,
+                                               fastq_fail_file, fastq_fail_file_renamed,
+                                               output_md5sum_fast5,
+                                               output_md5sum_fastq_pass, output_md5sum_fastq_fail],
+                                         index=re_basecalled_columns))
     return pd.concat(config_list, axis='columns', ignore_index=True, sort=True).transpose()
 
 
@@ -150,26 +174,38 @@ def tidy_summary_df(summary_df, config_df):
     summary_df['zfill_num'] = summary_df['filename_fastq'].apply(
         lambda x: str(x.split(".")[0].rsplit("_")[-1]).zfill(zfill))
 
+    # Grab fastq and fast5 values
+    if 'filename_fastq' in summary_df.columns.tolist() and 'filename_fast5' in summary_df.columns.tolist():
+        # only if has been basecalled directly
+        unique_files = summary_df[['filename_fastq', 'filename_fast5']].drop_duplicates()
+        basecall_direct = True
+    elif 'filename' in summary_df.columns.tolist():
+        unique_files = summary_df[['filename']]
+        basecall_direct = False
+    else:
+        logging.error("Could not find right filename columns in %s" % ','.join(summary_df.columns.tolist()))
+        sys.exit(1)
 
     # Rename fastq file to path
     summary_df = summary_df.merge(config_df, how='inner',
                                   left_on='zfill_num', right_on='zfill_num',
                                   suffixes=("", "_config"))
 
-    # Rename old columns
-    rename_columns = ['filename_fast5', 'filename_fastq', 'run_id']
-    rename_columns_dict = {key: "%s_orig" % key for key in rename_columns}
-    summary_df.rename(columns=rename_columns_dict, inplace=True)
+    if basecall_direct:
+        # Rename old columns
+        rename_columns = ['filename_fast5', 'filename_fastq', 'run_id']
+        rename_columns_dict = {key: "%s_orig" % key for key in rename_columns}
+        summary_df.rename(columns=rename_columns_dict, inplace=True)
 
-    # Adjust the files (replace columns)
-    summary_df['filename_fast5'] = summary_df.apply(lambda x: x.fast5_pass_file_renamed
-                                                                  if x.passes_filtering
-                                                                  else x.fast5_fail_file_renamed,
-                                                    axis='columns')
-    summary_df['filename_fastq'] = summary_df.apply(lambda x: x.fastq_pass_file_renamed
-                                                                 if x.passes_filtering
-                                                                 else x.fastq_fail_file_renamed,
-                                                    axis='columns')
+        # Adjust the files (replace columns)
+        summary_df['filename_fast5'] = summary_df.apply(lambda x: x.fast5_pass_file_renamed
+                                                                      if x.passes_filtering
+                                                                      else x.fast5_fail_file_renamed,
+                                                        axis='columns')
+        summary_df['filename_fastq'] = summary_df.apply(lambda x: x.fastq_pass_file_renamed
+                                                                     if x.passes_filtering
+                                                                     else x.fastq_fail_file_renamed,
+                                                        axis='columns')
 
     # Adjust the run_id
     summary_df['run_id'] = summary_df.apply(lambda x: x.rand_id, axis='columns')
