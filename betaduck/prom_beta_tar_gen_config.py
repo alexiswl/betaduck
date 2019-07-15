@@ -119,7 +119,7 @@ def get_all_files(rand_id, summary_df):
             fastq_pass_file_renamed = os.path.join("fastq_pass", fastq_pass_file) + ".gz"
             fastq_fail_file = re.sub(".fast5", ".fastq", row.filename)
             fastq_fail_file_orig = os.path.join('fastq_fail', re.sub(rand_id, run_id, fastq_fail_file))
-            fastq_fail_file_renamed = os.path.join("fastq_pass", fastq_pass_file) + ".gz"
+            fastq_fail_file_renamed = os.path.join("fastq_fail", fastq_fail_file) + ".gz"
 
         # Add md5sum outputs
         output_md5sum_fast5_pass = os.path.join("fast5_pass", "checksum.fast5.pass.md5")
