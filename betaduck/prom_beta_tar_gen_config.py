@@ -73,7 +73,7 @@ def get_all_files(rand_id, summary_df):
         unique_files = summary_df[['filename_fastq', 'filename_fast5']].drop_duplicates()
         basecall_direct = True
     elif 'filename' in summary_df.columns.tolist():
-        unique_files = summary_df[['filename']]
+        unique_files = summary_df[['filename']].drop_duplicates()
         basecall_direct = False
     else:
         logging.error("Could not find right filename columns in %s" % ','.join(summary_df.columns.tolist()))
@@ -113,9 +113,9 @@ def get_all_files(rand_id, summary_df):
             zfill_num = str(num).zfill(zfill)
             fast5_file = os.path.join('fast5', row.filename)
             fast5_file_renamed = fast5_file + ".gz"
-            fastq_pass_file = os.path.join('fastq_pass', row.filename)
+            fastq_pass_file = os.path.join('fastq_pass', re.sub(".fast5", ".fastq", row.filename))
             fastq_pass_file_renamed = fastq_pass_file + ".gz"
-            fastq_fail_file = os.path.join('fastq_fail', row.filename)
+            fastq_fail_file = os.path.join('fastq_fail', re.sub(".fast5", ".fastq", row.filename))
             fastq_fail_file_renamed = fastq_fail_file + ".gz"
 
         # Add md5sum outputs
@@ -168,20 +168,24 @@ def tidy_summary_df(summary_df, config_df):
     :param summary_df: pd.DataFrame
     :param config_df: pd.DataFrame
     :return: pd.DataFrame
-    """
-    # Adjust values of fastq and fast5 filenames
-    # Grab number value to bind to config_df
-    summary_df['zfill_num'] = summary_df['filename_fastq'].apply(
-        lambda x: str(x.split(".")[0].rsplit("_")[-1]).zfill(zfill))
+    """ 
 
     # Grab fastq and fast5 values
     if 'filename_fastq' in summary_df.columns.tolist() and 'filename_fast5' in summary_df.columns.tolist():
         # only if has been basecalled directly
         unique_files = summary_df[['filename_fastq', 'filename_fast5']].drop_duplicates()
         basecall_direct = True
+        # Grab number value to bind to config_df
+        summary_df['zfill_num'] = summary_df['filename_fastq'].apply(
+            lambda x: str(x.split(".")[0].rsplit("_")[-1]).zfill(zfill))
+
     elif 'filename' in summary_df.columns.tolist():
         unique_files = summary_df[['filename']]
         basecall_direct = False
+        # Grab number value to bind to config_df
+        summary_df['zfill_num'] = summary_df['filename'].apply(
+            lambda x: str(x.split(".")[0].rsplit("_")[-1]).zfill(zfill))
+
     else:
         logging.error("Could not find right filename columns in %s" % ','.join(summary_df.columns.tolist()))
         sys.exit(1)
