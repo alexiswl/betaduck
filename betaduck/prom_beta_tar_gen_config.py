@@ -82,8 +82,9 @@ def get_all_files(rand_id, summary_df):
 
     # Add to config dict
     for row in unique_files.itertuples():
+        run_id = row.run_id
         if basecall_direct:
-            flowcell, run_id, num = row.filename_fastq.split(".", 1)[0].split("_", 3)
+            flowcell, _run_id, num = row.filename_fastq.split(".", 1)[0].split("_", 3)
             zfill_num = str(num).zfill(zfill)
             fast5_pass_file = os.path.join('fast5_pass', row.filename_fast5)
             fast5_pass_file_renamed = os.path.join('fast5_pass',
@@ -109,14 +110,16 @@ def get_all_files(rand_id, summary_df):
 
 
         else:
-            flowcell, run_id, num = row.filename.split(".", 1)[0].split("_", 3)
+            flowcell, _run_id, num = row.filename.split(".", 1)[0].split("_", 3)
             zfill_num = str(num).zfill(zfill)
             fast5_file = os.path.join('fast5', row.filename)
             fast5_file_renamed = fast5_file + ".gz"
-            fastq_pass_file = os.path.join('fastq_pass', re.sub(".fast5", ".fastq", row.filename))
-            fastq_pass_file_renamed = fastq_pass_file + ".gz"
-            fastq_fail_file = os.path.join('fastq_fail', re.sub(".fast5", ".fastq", row.filename))
-            fastq_fail_file_renamed = fastq_fail_file + ".gz"
+            fastq_pass_file = re.sub(".fast5", ".fastq", row.filename)
+            fastq_pass_file_orig = os.path.join('fastq_pass', re.sub(rand_id, run_id, fastq_pass_file))
+            fastq_pass_file_renamed = os.path.join("fastq_pass", fastq_pass_file) + ".gz"
+            fastq_fail_file = re.sub(".fast5", ".fastq", row.filename)
+            fastq_fail_file_orig = os.path.join('fastq_fail', re.sub(rand_id, run_id, fastq_fail_file))
+            fastq_fail_file_renamed = os.path.join("fastq_pass", fastq_pass_file) + ".gz"
 
         # Add md5sum outputs
         output_md5sum_fast5_pass = os.path.join("fast5_pass", "checksum.fast5.pass.md5")
@@ -137,8 +140,8 @@ def get_all_files(rand_id, summary_df):
         else:
             config_list.append(pd.Series(data=[zfill_num, rand_id,
                                                fast5_file, fast5_file_renamed,
-                                               fastq_pass_file, fastq_pass_file_renamed,
-                                               fastq_fail_file, fastq_fail_file_renamed,
+                                               fastq_pass_file_orig, fastq_pass_file_renamed,
+                                               fastq_fail_file_orig, fastq_fail_file_renamed,
                                                output_md5sum_fast5,
                                                output_md5sum_fastq_pass, output_md5sum_fastq_fail],
                                          index=re_basecalled_columns))
@@ -210,6 +213,11 @@ def tidy_summary_df(summary_df, config_df):
                                                                      if x.passes_filtering
                                                                      else x.fastq_fail_file_renamed,
                                                         axis='columns')
+    else:
+        # Rename old columns
+        rename_columns = ['run_id']
+        rename_columns_dict = {key: "%s_orig" % key for key in rename_columns}
+        summary_df.rename(columns=rename_columns_dict, inplace=True)
 
     # Adjust the run_id
     summary_df['run_id'] = summary_df.apply(lambda x: x.rand_id, axis='columns')
