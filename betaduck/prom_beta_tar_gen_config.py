@@ -73,7 +73,7 @@ def get_all_files(rand_id, summary_df):
         unique_files = summary_df[['filename_fastq', 'filename_fast5']].drop_duplicates()
         basecall_direct = True
     elif 'filename' in summary_df.columns.tolist():
-        unique_files = summary_df[['filename']].drop_duplicates()
+        unique_files = summary_df[['filename', 'run_id']].drop_duplicates()
         basecall_direct = False
     else:
         logging.error("Could not find right filename columns in %s" % ','.join(summary_df.columns.tolist()))
@@ -111,14 +111,18 @@ def get_all_files(rand_id, summary_df):
 
         else:
             flowcell, _run_id, num = row.filename.split(".", 1)[0].split("_", 3)
-            zfill_num = str(num).zfill(zfill)
+            zfill_num = str(int(num)).zfill(zfill)
             fast5_file = os.path.join('fast5', row.filename)
             fast5_file_renamed = fast5_file + ".gz"
             fastq_pass_file = re.sub(".fast5", ".fastq", row.filename)
-            fastq_pass_file_orig = os.path.join('fastq_pass', re.sub(rand_id, run_id, fastq_pass_file))
+            fastq_pass_file_orig = re.sub(zfill_num, str(int(num)), fastq_pass_file)
+            fastq_pass_file_orig = re.sub(flowcell, "fastq_runid", fastq_pass_file_orig)
+            fastq_pass_file_orig = os.path.join('fastq_pass', re.sub(rand_id, run_id, fastq_pass_file_orig))
             fastq_pass_file_renamed = os.path.join("fastq_pass", fastq_pass_file) + ".gz"
             fastq_fail_file = re.sub(".fast5", ".fastq", row.filename)
-            fastq_fail_file_orig = os.path.join('fastq_fail', re.sub(rand_id, run_id, fastq_fail_file))
+            fastq_fail_file_orig = re.sub(zfill_num, str(int(num)), fastq_fail_file)
+            fastq_fail_file_orig = re.sub(flowcell, "fastq_runid", fastq_fail_file_orig)
+            fastq_fail_file_orig = os.path.join('fastq_fail', re.sub(rand_id, run_id, fastq_fail_file_orig))
             fastq_fail_file_renamed = os.path.join("fastq_fail", fastq_fail_file) + ".gz"
 
         # Add md5sum outputs
@@ -126,7 +130,7 @@ def get_all_files(rand_id, summary_df):
         output_md5sum_fastq_pass = os.path.join("fastq_pass", "checksum.fastq.pass.md5")
         output_md5sum_fast5 = os.path.join("fast5", "checksum.fast5.md5")
         output_md5sum_fast5_fail = os.path.join("fast5_fail", "checksum.fast5.fail.md5")
-        output_md5sum_fastq_fail = os.path.join("fast5_fail", "checksum.fastq.fail.md5")
+        output_md5sum_fastq_fail = os.path.join("fastq_fail", "checksum.fastq.fail.md5")
 
         if basecall_direct:
             config_list.append(pd.Series(data=[zfill_num, rand_id,

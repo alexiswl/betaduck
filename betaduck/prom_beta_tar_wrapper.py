@@ -36,18 +36,20 @@ def run_process(config_data, keep=False, overwrite=False, dry_run=False):
     if getattr(config_data, "fast5_fail_file", None) is None and getattr(config_data, "fast5_pass_file", None) is None:
         #  Not running basecall directly.
         # Generate tar command
+        logger.info("Using post-basecalled wrapping method")
         tar_command = ["python", os.path.join(here, "prom_beta_tar_runner.py"),
                        # Then come the options.
                        "--fastq-input-pass-path=%s" % config_data.fastq_pass_file,
                        "--fastq-output-pass-path=%s" % config_data.fastq_pass_file_renamed,
-                       "--fast5-input-path=%s" % config_data.fast5_pass_file,
-                       "--fast5-output-path=%s" % config_data.fast5_pass_file_renamed,
+                       "--fast5-input-path=%s" % config_data.fast5_file,
+                       "--fast5-output-path=%s" % config_data.fast5_file_renamed,
                        "--fastq-input-fail-path=%s" % config_data.fastq_fail_file,
                        "--fastq-output-fail-path=%s" % config_data.fastq_fail_file_renamed,
                        "--md5-fast5=%s" % config_data.md5_fast5,
                        "--md5-pass-fastq=%s" % config_data.md5_fastq_pass,
                        "--md5-fail-fastq=%s" % config_data.md5_fastq_fail]
     else:
+        loggin.info("Using inline basecalled wrapping method")
         # Generate tar command
         tar_command = ["python", os.path.join(here, "prom_beta_tar_runner.py"),
                        # Then come the options.

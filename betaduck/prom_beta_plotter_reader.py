@@ -38,13 +38,15 @@ def get_fastq_files(fastq_dirs):
 def get_series_from_seq(record):
     """Takes in a seq record and returns dataframe with index"""
     # Series index
-    index = ["read_id", "run_id", "sample_id", "read", "channel", "start_time_utc"]
+    index = ["read_id", "run_id", "sampleid", "read", "channel", "start_time_utc"]
     # Get metadata
     fastq_id = record.id.split()[0].lstrip("@")
     row_as_dict = dict(x.split("=") for x in record.description.split()[1:])
 
+    sampleid_key = 'sampleid' if 'sampleid' in row_as_dict.keys() else 'sample_id'
+
     return pd.Series([fastq_id, row_as_dict['runid'],
-                      row_as_dict['sample_id'], row_as_dict['read'],
+                      row_as_dict[sampleid_key], row_as_dict['read'],
                       row_as_dict['ch'], row_as_dict['start_time']],
                      index=index)
 
@@ -74,7 +76,7 @@ def get_fastq_dataframe(fastq_file, is_gzipped=True):
         return fastq_df
     except ValueError:
         print("Value error when generating dataframe for %s. Unknown cause of issue." % fastq_file)
-        return pd.DataFrame(columns=["read_id", "run_id", "sample_id", "read", "channel", "start_time_utc"])
+        return pd.DataFrame(columns=["read_id", "run_id", "sampleid", "read", "channel", "start_time_utc"])
 
 
 def read_fastq_datasets(fastq_files, threads):

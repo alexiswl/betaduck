@@ -688,7 +688,7 @@ def print_stats(dataset, name, plots_dir):
     run_duration_h = f"{hours} hours, {minutes} minutes, {seconds:2,.0f} seconds"
 
     # Print these stats
-    sample_name = dataset["sample_id"].unique().item()
+    sample_name = dataset["sampleid"].unique().item()
     with open(os.path.join(plots_dir, "%s.stats.txt" % name), 'a') as output_handle:
         # Print total basepairs
         output_handle.write("# Stats for sample '%s' #\n" % sample_name)

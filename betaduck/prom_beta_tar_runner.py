@@ -122,8 +122,12 @@ def main():
         logger.info("Argument %s: %r", arg, value)
 
     # Either file may not exist (but at least one must):
-    if not os.path.isfile(args.fast5_input_pass_path) and not os.path.isfile(args.fast5_input_fail_path):
-        logger.error("Warning, neither pass nor fail fast5 file exist")
+    if getattr(args, "fast5_input_pass_path", None) is not None and getattr(args, "fast5_input_fail_path", None) is not None:
+        if not os.path.isfile(args.fast5_input_pass_path) and not os.path.isfile(args.fast5_input_fail_path):
+            logger.error("Warning, neither pass nor fail fast5 file exist")
+    else:
+        if not os.path.isfile(args.fast5_input_path):
+            logger.error("Warning, fast5 input file does not exist")
     if not os.path.isfile(args.fastq_input_pass_path) and not os.path.isfile(args.fastq_input_fail_path):
         logger.error("Warning, neither pass nor fail fastq file exist")
     
@@ -149,15 +153,22 @@ def main():
 
     # Get md5 for fastq and fast5
     if not args.dry_run:
-        # Get md5
-        md5sum_fast5_pass = get_md5sum(args.fast5_output_pass_path)
-        md5sum_fast5_fail = get_md5sum(args.fast5_output_fail_path)
+        # Get fast5 md5 and append to file
+        if getattr(args, "fast5_output_pass_path", None) is not None:
+            md5sum_fast5_pass = get_md5sum(args.fast5_output_pass_path)
+            write_md5sum(md5sum_fast5_pass, args.md5_pass_fast5)
+        if getattr(args, "fast5_output_fail_path", None) is not None:
+            md5sum_fast5_fail = get_md5sum(args.fast5_output_fail_path)
+            write_md5sum(md5sum_fast5_fail, args.md5_fail_fast5)
+        if getattr(args, "fast5_output_path", None) is not None:
+            md5sum_fast5 = get_md5sum(args.fast5_output_path)
+            write_md5sum(md5sum_fast5, args.md5_fast5)
+
+        # Get fastq md5 and append to file
         md5sum_fastq_pass = get_md5sum(args.fastq_output_pass_path)
         md5sum_fastq_fail = get_md5sum(args.fastq_output_fail_path)
 
         # Append md5 to file
-        write_md5sum(md5sum_fast5_pass, args.md5_pass_fast5)
-        write_md5sum(md5sum_fast5_fail, args.md5_fail_fast5)
         write_md5sum(md5sum_fastq_pass, args.md5_pass_fastq)
         write_md5sum(md5sum_fastq_fail, args.md5_fail_fastq)
 

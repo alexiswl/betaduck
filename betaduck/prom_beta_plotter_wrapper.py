@@ -27,7 +27,7 @@ template_duration   sequence_length_template    mean_qscore_template    strand_s
 
 """
 fastq file columns
-"fastq_id", "sample_id", "read", "channel", "start_time_utc"
+"fastq_id", "sampleid", "read", "channel", "start_time_utc"
 """
 
 
