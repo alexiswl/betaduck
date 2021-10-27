@@ -3,7 +3,7 @@ certifi==2018.8.24
 cycler==0.10.0
 humanfriendly==4.16.1
 kiwisolver==1.0.1
-dask==0.19.3
+dask==2021.10.0
 h5py==2.8.0
 matplotlib==3.0.0
 numpy==1.15.2
